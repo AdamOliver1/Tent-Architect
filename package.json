@@ -1,0 +1,21 @@
+{
+  "name": "tent-floor-planner",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Tent Floor Planner - Monorepo with React frontend and NestJS backend",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspaces --if-present",
+    "dev:backend": "npm run start:dev -w apps/backend",
+    "dev:frontend": "npm run dev -w apps/frontend",
+    "build": "npm run build --workspaces",
+    "test": "npm run test --workspaces --if-present",
+    "test:algorithm": "npm run test -w apps/backend",
+    "lint": "npm run lint --workspaces --if-present"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

@@ -1,0 +1,104 @@
+@use '../../styles/variables' as *;
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: $spacing-xl;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: $spacing-xl;
+
+  h1 {
+    color: $text-color;
+    margin-bottom: $spacing-sm;
+  }
+
+  p {
+    color: $text-muted;
+  }
+}
+
+.main {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: $spacing-xl;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-lg;
+}
+
+.error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-md;
+  background-color: rgba($error-color, 0.1);
+  border: 1px solid $error-color;
+  border-radius: $radius-md;
+  color: $error-color;
+
+  button {
+    background: none;
+    border: none;
+    color: inherit;
+    font-size: $font-lg;
+    cursor: pointer;
+    padding: 0 $spacing-xs;
+
+    &:hover {
+      opacity: 0.7;
+    }
+  }
+}
+
+.info {
+  background: $surface-color;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  box-shadow: $shadow-sm;
+  height: fit-content;
+
+  h3 {
+    font-size: $font-md;
+    color: $text-color;
+    margin-bottom: $spacing-md;
+
+    &:not(:first-child) {
+      margin-top: $spacing-lg;
+    }
+  }
+
+  ol {
+    padding-left: $spacing-lg;
+    color: $text-muted;
+    font-size: $font-sm;
+
+    li {
+      margin-bottom: $spacing-sm;
+    }
+  }
+
+  dl {
+    dt {
+      font-weight: 600;
+      color: $text-color;
+      font-size: $font-sm;
+      margin-top: $spacing-sm;
+    }
+
+    dd {
+      color: $text-muted;
+      font-size: $font-sm;
+      margin-left: 0;
+    }
+  }
+}

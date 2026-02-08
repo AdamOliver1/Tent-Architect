@@ -1,0 +1,133 @@
+@use '../../styles/variables' as *;
+
+.container {
+  background: $surface-color;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-sm;
+  overflow: hidden;
+}
+
+.header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-lg;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+
+  h3 {
+    color: $text-color;
+    margin: 0;
+  }
+
+  &:hover {
+    background-color: $background-color;
+  }
+}
+
+.toggle {
+  font-size: $font-xl;
+  color: $text-muted;
+  line-height: 1;
+}
+
+.content {
+  padding: 0 $spacing-lg $spacing-lg;
+}
+
+.section {
+  &:not(:last-child) {
+    margin-bottom: $spacing-lg;
+    padding-bottom: $spacing-lg;
+    border-bottom: 1px solid $border-color;
+  }
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-md;
+
+  h4 {
+    font-size: $font-sm;
+    font-weight: 500;
+    color: $text-muted;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+}
+
+.items {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+}
+
+.itemFields {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+
+  input {
+    width: 70px;
+    padding: $spacing-xs $spacing-sm;
+    border: 1px solid $border-color;
+    border-radius: $radius-sm;
+    font-size: $font-sm;
+
+    &:focus {
+      outline: none;
+      border-color: $primary-color;
+    }
+
+    &:disabled {
+      background-color: $background-color;
+      cursor: not-allowed;
+    }
+  }
+
+  span {
+    color: $text-muted;
+    font-size: $font-sm;
+  }
+}
+
+.qtyInput {
+  width: 60px !important;
+}
+
+.removeBtn {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  border-radius: $radius-sm;
+  color: $text-muted;
+  cursor: pointer;
+  font-size: $font-lg;
+  line-height: 1;
+
+  &:hover:not(:disabled) {
+    color: $error-color;
+    background-color: rgba($error-color, 0.1);
+  }
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+}

@@ -1,0 +1,1 @@
+export { InventoryEditor } from './InventoryEditor';

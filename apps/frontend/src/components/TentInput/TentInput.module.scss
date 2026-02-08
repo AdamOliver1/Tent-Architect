@@ -1,0 +1,54 @@
+@use '../../styles/variables' as *;
+
+.container {
+  background: $surface-color;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  box-shadow: $shadow-sm;
+}
+
+.title {
+  margin-bottom: $spacing-md;
+  color: $text-color;
+}
+
+.inputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: $spacing-md;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+
+  label {
+    font-size: $font-sm;
+    font-weight: 500;
+    color: $text-color;
+  }
+
+  input {
+    padding: $spacing-sm $spacing-md;
+    border: 1px solid $border-color;
+    border-radius: $radius-md;
+    font-size: $font-md;
+    transition: border-color $transition-fast;
+
+    &:focus {
+      outline: none;
+      border-color: $primary-color;
+    }
+
+    &:disabled {
+      background-color: $background-color;
+      cursor: not-allowed;
+    }
+  }
+}
+
+.hint {
+  font-size: $font-xs;
+  color: $text-muted;
+}
