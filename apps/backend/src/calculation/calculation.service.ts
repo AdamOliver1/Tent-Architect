@@ -63,8 +63,11 @@ export class CalculationService {
       );
     }
 
-    // Find column combinations using DP
-    const solutions = this.dpColumnSearch(columnTypes, usableWidth);
+    // Validate that inventory has enough braces to cover a meaningful floor area
+    this.validateBraceInventory(inventory.braces, usableLength, usableWidth);
+
+    // Find column combinations using DP (with brace quantity tracking)
+    const solutions = this.dpColumnSearch(columnTypes, usableWidth, inventory.braces);
 
     if (solutions.length === 0) {
       throw new BadRequestException(
@@ -102,6 +105,61 @@ export class CalculationService {
     if (tent.length < 2 * MIN_SETBACK || tent.width < 2 * MIN_SETBACK) {
       throw new BadRequestException(
         `Tent dimensions must be at least ${2 * MIN_SETBACK}m to accommodate minimum setback`,
+      );
+    }
+  }
+
+  /**
+   * Validate that the brace inventory has enough panels to cover at least
+   * one column of the floor. This is a quick pre-check before running DP.
+   */
+  private validateBraceInventory(
+    braces: Brace[],
+    usableLength: number,
+    usableWidth: number,
+  ): void {
+    // Calculate total area that all braces can cover
+    let totalBraceArea = 0;
+    for (const brace of braces) {
+      totalBraceArea += brace.length * brace.width * brace.quantity;
+    }
+
+    // Calculate minimum floor area (at least one column must fit)
+    const minColumnWidth = Math.min(
+      ...braces.flatMap((b) => [b.width, b.length]),
+    );
+    const minFloorArea = minColumnWidth * usableLength;
+
+    if (totalBraceArea < minFloorArea) {
+      throw new BadRequestException(
+        `Insufficient brace inventory: total brace area is ${totalBraceArea.toFixed(2)} m², ` +
+        `but at least ${minFloorArea.toFixed(2)} m² is needed to fill one column. ` +
+        `Add more braces to your inventory.`,
+      );
+    }
+
+    // Check that at least one brace type has enough quantity for a single column
+    let anyColumnFeasible = false;
+    for (const brace of braces) {
+      // Normal orientation
+      const normalCount = Math.floor(usableLength / brace.length);
+      if (normalCount > 0 && normalCount <= brace.quantity && brace.width <= usableWidth) {
+        anyColumnFeasible = true;
+        break;
+      }
+      // Rotated orientation
+      const rotatedCount = Math.floor(usableLength / brace.width);
+      if (rotatedCount > 0 && rotatedCount <= brace.quantity && brace.length <= usableWidth) {
+        anyColumnFeasible = true;
+        break;
+      }
+    }
+
+    if (!anyColumnFeasible) {
+      throw new BadRequestException(
+        `Insufficient brace inventory: no single brace type has enough quantity to fill ` +
+        `even one column (usable length: ${usableLength.toFixed(2)}m). ` +
+        `Increase brace quantities or use a smaller tent.`,
       );
     }
   }
@@ -151,7 +209,7 @@ export class CalculationService {
    * Dynamic Programming search to find optimal column combinations
    * Uses discretization to centimeters for efficient state space
    */
-  dpColumnSearch(columnTypes: ColumnType[], targetWidth: number): DPSolution[] {
+  dpColumnSearch(columnTypes: ColumnType[], targetWidth: number, braces?: Brace[]): DPSolution[] {
     // Convert to centimeters for integer math
     const targetCm = Math.round(targetWidth / PRECISION);
     const maxSetbackIncreaseCm = Math.round(MAX_SETBACK_INCREASE / PRECISION);
@@ -160,12 +218,24 @@ export class CalculationService {
     // Each solution tracks {setbackExcess, totalGap, columns}
     const states = new Map<number, DPSolution[]>();
 
-    // Initialize with empty solution at width 0
-    states.set(0, [{ setbackExcess: 0, totalGap: 0, columns: [] }]);
+    // Build brace quantity limits: key = "LxW", value = max quantity
+    const braceQuantities: Record<string, number> = {};
+    if (braces) {
+      for (const brace of braces) {
+        const key = `${brace.length}x${brace.width}`;
+        braceQuantities[key] = (braceQuantities[key] || 0) + brace.quantity;
+      }
+    }
+
+    // Initialize with empty solution. Start at one rail width because the layout
+    // needs (numColumns + 1) rails: one before each column plus one after the last.
+    // Each column transition in the DP adds one rail, so we seed with the first rail.
+    const railCm = Math.round(RAIL_THICKNESS / PRECISION);
+    states.set(railCm, [{ setbackExcess: 0, totalGap: 0, columns: [], braceUsage: {} }]);
 
     // Process states in order of increasing width
     const processedWidths = new Set<number>();
-    const widthsToProcess = [0];
+    const widthsToProcess = [railCm];
 
     while (widthsToProcess.length > 0) {
       const currentWidthCm = widthsToProcess.shift()!;
@@ -181,7 +251,8 @@ export class CalculationService {
       // Try adding each column type
       for (const columnType of columnTypes) {
         const columnWidthCm = Math.round(columnType.columnWidth / PRECISION);
-        const newWidthCm = currentWidthCm + columnWidthCm;
+        const railThicknessCm = Math.round(RAIL_THICKNESS / PRECISION); // 5cm
+        const newWidthCm = currentWidthCm + columnWidthCm + railThicknessCm;
 
         // Skip if we would exceed target width
         if (newWidthCm > targetCm) {
@@ -190,10 +261,26 @@ export class CalculationService {
 
         // Create new solutions by extending current ones
         for (const solution of currentSolutions) {
+          // Check brace quantity constraints
+          if (braces && braces.length > 0) {
+            const braceKey = `${columnType.braceLength}x${columnType.braceWidth}`;
+            const currentUsage = (solution.braceUsage || {})[braceKey] || 0;
+            const maxAvailable = braceQuantities[braceKey] || 0;
+            if (currentUsage + columnType.braceCount > maxAvailable) {
+              continue; // Skip: not enough braces in inventory
+            }
+          }
+
+          // Update brace usage tracking
+          const newBraceUsage = { ...(solution.braceUsage || {}) };
+          const braceKey = `${columnType.braceLength}x${columnType.braceWidth}`;
+          newBraceUsage[braceKey] = (newBraceUsage[braceKey] || 0) + columnType.braceCount;
+
           const newSolution: DPSolution = {
             setbackExcess: 0, // Will be set when we reach terminal state
             totalGap: solution.totalGap + columnType.gap,
             columns: [...solution.columns, columnType],
+            braceUsage: newBraceUsage,
           };
 
           // Add to state map with Pareto pruning
@@ -358,25 +445,28 @@ export class CalculationService {
     tent: TentDimensions,
     railInventory: Rail[],
   ): Scenario {
-    // Calculate actual setback
+    // Calculate actual width setback
+    // Total width consumed = sum of column widths + (numColumns + 1) rails
+    const numColumns = solution.columns.length;
     const totalColumnWidth = solution.columns.reduce((sum, col) => sum + col.columnWidth, 0);
+    const totalRailWidth = (numColumns + 1) * RAIL_THICKNESS;
     const usableWidth = tent.width - 2 * MIN_SETBACK;
-    const additionalSetback = (usableWidth - totalColumnWidth) / 2;
-    const actualSetback = MIN_SETBACK + additionalSetback;
+    const additionalSetback = (usableWidth - totalColumnWidth - totalRailWidth) / 2;
+    const actualSetback = MIN_SETBACK + Math.max(0, additionalSetback);
 
-    // Calculate usable length with actual setback
-    const usableLength = tent.length - 2 * actualSetback;
+    // Length always uses minimum setback (width setback does NOT apply to length)
+    const usableLength = tent.length - 2 * MIN_SETBACK;
 
-    // Place columns
+    // Place columns with rail gaps between them
     const columns: Column[] = [];
-    let position = actualSetback;
+    let position = actualSetback + RAIL_THICKNESS; // Start after first rail
 
     for (const columnType of solution.columns) {
       columns.push({
         columnType,
         position,
       });
-      position += columnType.columnWidth;
+      position += columnType.columnWidth + RAIL_THICKNESS; // Column + rail after it
     }
 
     // Construct rails (2 rails, one on each side of the floor)

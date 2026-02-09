@@ -215,9 +215,9 @@ describe('CalculationService', () => {
 
   describe('edge cases', () => {
     it('should handle tent where braces exactly fit width', () => {
-      // 2 x 1.22m braces + 2 x 0.15m setback = 2.74m total
+      // 2 x 1.22m braces + 3 x 0.05m rails + 2 x 0.15m setback = 2.89m total
       const result = service.calculate({
-        tent: { length: 10, width: 2.74 },
+        tent: { length: 10, width: 2.89 },
         inventory: {
           braces: [{ length: 2.45, width: 1.22, quantity: 100 }],
           rails: [{ length: 5, quantity: 10 }],

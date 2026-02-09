@@ -72,4 +72,6 @@ export interface DPSolution {
   totalGap: number;
   /** Columns selected in this solution */
   columns: ColumnType[];
+  /** Brace usage tracking: key = "LxW" identifier, value = count of braces used */
+  braceUsage?: Record<string, number>;
 }
