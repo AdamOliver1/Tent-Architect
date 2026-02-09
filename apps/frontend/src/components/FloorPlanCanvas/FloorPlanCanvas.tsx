@@ -1,5 +1,6 @@
 import { useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import type { Scenario, Column, TentDimensions } from '../../types';
+import { ZoomControls } from '../ZoomControls';
 import styles from './FloorPlanCanvas.module.scss';
 
 interface FloorPlanCanvasProps {
@@ -9,31 +10,34 @@ interface FloorPlanCanvasProps {
   selectedColumnIndex?: number | null;
 }
 
-const RAIL_THICKNESS = 0.05; // 5cm in meters
+const RAIL_THICKNESS = 0.05; // 5cm
 
+// Warm, architectural color palette
 const COLORS = {
-  background: '#f1f5f9',
-  tentBorder: '#94a3b8',
-  setbackLine: '#cbd5e1',
-  setbackFill: 'rgba(148, 163, 184, 0.06)',
-  rail: '#475569',
-  brace: '#3b82f6',
-  braceHover: '#2563eb',
-  braceBorder: '#1d4ed8',
-  gap: '#fef3c7',
-  gapBorder: '#f59e0b',
-  text: '#475569',
-  dimLine: '#94a3b8',
-  labelBg: 'rgba(255,255,255,0.92)',
+  background: '#EDEBE8',
+  tentBorder: '#8A9490',
+  setbackLine: '#B5B0A8',
+  setbackFill: 'rgba(90, 122, 108, 0.04)',
+  rail: '#4A5553',
+  brace: '#5A7A6C',
+  braceHover: '#4A6A5C',
+  braceBorder: '#3A5A4C',
+  gap: '#FFF0DB',
+  gapBorder: '#C4956A',
+  text: '#5A6462',
+  dimLine: '#8A9490',
+  labelBg: 'rgba(253,252,250,0.94)',
+  miniMapBg: 'rgba(253,252,250,0.9)',
+  miniMapViewport: 'rgba(90, 122, 108, 0.25)',
+  miniMapViewportBorder: '#5A7A6C',
 };
 
-// Animation timing
 const ANIM = {
   tentDelay: 0,
   setbackDelay: 200,
   railDelay: 400,
   columnBaseDelay: 600,
-  columnStagger: 120,
+  columnStagger: 100,
   gapExtraDelay: 80,
   labelDelay: 200,
   duration: 400,
@@ -44,6 +48,10 @@ function formatDim(n: number): string {
   return n.toFixed(3).replace(/\.?0+$/, '');
 }
 
+const MIN_ZOOM = 0.25;
+const MAX_ZOOM = 4;
+const ZOOM_STEP = 0.25;
+
 export function FloorPlanCanvas({
   scenario,
   tent,
@@ -51,21 +59,35 @@ export function FloorPlanCanvas({
   selectedColumnIndex,
 }: FloorPlanCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
   const [containerWidth, setContainerWidth] = useState(800);
+  const [containerHeight, setContainerHeight] = useState(600);
   const [animKey, setAnimKey] = useState(0);
   const [hoveredColumn, setHoveredColumn] = useState<number | null>(null);
+
+  // Zoom & pan state
+  const [zoom, setZoom] = useState(1);
+  const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
+  const [isPanning, setIsPanning] = useState(false);
+  const panStart = useRef({ x: 0, y: 0 });
+  const panOffsetStart = useRef({ x: 0, y: 0 });
 
   // Trigger re-animation when scenario changes
   useEffect(() => {
     setAnimKey((k) => k + 1);
+    setZoom(1);
+    setPanOffset({ x: 0, y: 0 });
   }, [scenario]);
 
-  // Responsive width
+  // Responsive sizing — use full available space
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
 
-    const measure = () => setContainerWidth(el.clientWidth);
+    const measure = () => {
+      setContainerWidth(el.clientWidth);
+      setContainerHeight(el.clientHeight);
+    };
     measure();
 
     const ro = new ResizeObserver(measure);
@@ -73,27 +95,84 @@ export function FloorPlanCanvas({
     return () => ro.disconnect();
   }, []);
 
-  // Layout calculation (pure math, same logic as before)
+  // Layout calculation
   const layout = useMemo(() => {
-    const padding = 70;
-    const height = Math.max(500, Math.min(containerWidth * 0.75, 800));
-    const availableWidth = containerWidth - 2 * padding;
-    const availableHeight = height - 2 * padding;
+    const padding = 80;
+    const svgWidth = containerWidth;
+    const svgHeight = Math.max(500, containerHeight);
+    const availableWidth = svgWidth - 2 * padding;
+    const availableHeight = svgHeight - 2 * padding;
     const scaleX = availableWidth / tent.width;
     const scaleY = availableHeight / tent.length;
     const scale = Math.min(scaleX, scaleY);
 
     const tentDisplayWidth = tent.width * scale;
     const tentDisplayHeight = tent.length * scale;
-    const offsetX = (containerWidth - tentDisplayWidth) / 2;
-    const offsetY = (height - tentDisplayHeight) / 2;
+    const offsetX = (svgWidth - tentDisplayWidth) / 2;
+    const offsetY = (svgHeight - tentDisplayHeight) / 2;
 
-    return { padding, height, scale, offsetX, offsetY, tentDisplayWidth, tentDisplayHeight };
-  }, [containerWidth, tent]);
+    return { padding, svgWidth, svgHeight, scale, offsetX, offsetY, tentDisplayWidth, tentDisplayHeight };
+  }, [containerWidth, containerHeight, tent]);
 
   const toX = useCallback((x: number) => layout.offsetX + x * layout.scale, [layout]);
   const toY = useCallback((y: number) => layout.offsetY + y * layout.scale, [layout]);
   const toS = useCallback((s: number) => s * layout.scale, [layout]);
+
+  // ── Zoom handlers ──
+  const handleZoomIn = useCallback(() => {
+    setZoom((z) => Math.min(z + ZOOM_STEP, MAX_ZOOM));
+  }, []);
+
+  const handleZoomOut = useCallback(() => {
+    setZoom((z) => Math.max(z - ZOOM_STEP, MIN_ZOOM));
+  }, []);
+
+  const handleFitToView = useCallback(() => {
+    setZoom(1);
+    setPanOffset({ x: 0, y: 0 });
+  }, []);
+
+  // Wheel zoom
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        const delta = e.deltaY > 0 ? -0.1 : 0.1;
+        setZoom((z) => Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, z + delta)));
+      }
+    };
+
+    el.addEventListener('wheel', handleWheel, { passive: false });
+    return () => el.removeEventListener('wheel', handleWheel);
+  }, []);
+
+  // Pan handlers
+  const handlePanStart = useCallback((e: React.MouseEvent) => {
+    // Only pan with middle button or when holding space
+    if (e.button === 1 || (e.button === 0 && e.altKey)) {
+      e.preventDefault();
+      setIsPanning(true);
+      panStart.current = { x: e.clientX, y: e.clientY };
+      panOffsetStart.current = { ...panOffset };
+    }
+  }, [panOffset]);
+
+  const handlePanMove = useCallback((e: React.MouseEvent) => {
+    if (!isPanning) return;
+    const dx = e.clientX - panStart.current.x;
+    const dy = e.clientY - panStart.current.y;
+    setPanOffset({
+      x: panOffsetStart.current.x + dx,
+      y: panOffsetStart.current.y + dy,
+    });
+  }, [isPanning]);
+
+  const handlePanEnd = useCallback(() => {
+    setIsPanning(false);
+  }, []);
 
   const handleColumnClick = useCallback(
     (column: Column, index: number, e: React.MouseEvent<SVGGElement> | React.KeyboardEvent<SVGGElement>) => {
@@ -114,36 +193,72 @@ export function FloorPlanCanvas({
     [handleColumnClick]
   );
 
-  // Should we show dimension labels on braces? Only if braces are big enough on screen
+  // Brace label visibility
   const showBraceLabels = useMemo(() => {
     if (scenario.columns.length === 0) return false;
     const firstCol = scenario.columns[0].columnType;
-    const pixelW = toS(firstCol.columnWidth);
-    const pixelH = toS(firstCol.fillLength);
+    const pixelW = toS(firstCol.columnWidth) * zoom;
+    const pixelH = toS(firstCol.fillLength) * zoom;
     return pixelW > 40 && pixelH > 18;
-  }, [scenario.columns, toS]);
+  }, [scenario.columns, toS, zoom]);
 
   const showGapLabels = useMemo(() => {
     return scenario.columns.some((col) => {
       if (col.columnType.gap <= 0.001) return false;
-      const pixelH = toS(col.columnType.gap);
+      const pixelH = toS(col.columnType.gap) * zoom;
       return pixelH > 14;
     });
-  }, [scenario.columns, toS]);
+  }, [scenario.columns, toS, zoom]);
+
+  // Mini-map dimensions
+  const miniMapWidth = 140;
+  const miniMapHeight = Math.round(miniMapWidth * (tent.length / tent.width));
+  const miniMapScale = (miniMapWidth - 16) / tent.width;
+  const miniMapPadding = 8;
+
+  // Viewport indicator on mini-map
+  const viewportX = miniMapPadding - (panOffset.x / layout.scale / zoom) * miniMapScale;
+  const viewportY = miniMapPadding - (panOffset.y / layout.scale / zoom) * miniMapScale;
+  const viewportW = (layout.svgWidth / layout.scale / zoom) * miniMapScale;
+  const viewportH = (layout.svgHeight / layout.scale / zoom) * miniMapScale;
 
   return (
-    <div ref={containerRef} className={styles.container}>
+    <div
+      ref={containerRef}
+      className={`${styles.container} ${isPanning ? styles.panning : ''}`}
+      onMouseDown={handlePanStart}
+      onMouseMove={handlePanMove}
+      onMouseUp={handlePanEnd}
+      onMouseLeave={handlePanEnd}
+    >
+      {/* ── Canvas background pattern ── */}
+      <div className={styles.canvasBg} aria-hidden="true" />
+
+      {/* ── Main SVG ── */}
       <svg
+        ref={svgRef}
         key={animKey}
-        width={containerWidth}
-        height={layout.height}
-        viewBox={`0 0 ${containerWidth} ${layout.height}`}
+        width={layout.svgWidth}
+        height={layout.svgHeight}
+        viewBox={`0 0 ${layout.svgWidth} ${layout.svgHeight}`}
         className={styles.svg}
+        style={{
+          transform: `scale(${zoom}) translate(${panOffset.x / zoom}px, ${panOffset.y / zoom}px)`,
+          transformOrigin: 'center center',
+        }}
         role="img"
         aria-label={`Floor plan for ${tent.length}m by ${tent.width}m tent, ${scenario.name}`}
       >
         {/* Background */}
-        <rect width={containerWidth} height={layout.height} fill={COLORS.background} />
+        <rect width={layout.svgWidth} height={layout.svgHeight} fill={COLORS.background} />
+
+        {/* Subtle grid pattern */}
+        <defs>
+          <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+            <path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(0,0,0,0.03)" strokeWidth="0.5" />
+          </pattern>
+        </defs>
+        <rect width={layout.svgWidth} height={layout.svgHeight} fill="url(#grid)" />
 
         {/* ── Tent Outline ── */}
         <rect
@@ -151,14 +266,15 @@ export function FloorPlanCanvas({
           y={toY(0)}
           width={toS(tent.width)}
           height={toS(tent.length)}
-          fill="none"
+          fill="rgba(255,255,255,0.3)"
           stroke={COLORS.tentBorder}
           strokeWidth={2}
+          rx={3}
           className={styles.animFadeIn}
           style={{ animationDelay: `${ANIM.tentDelay}ms` }}
         />
 
-        {/* ── Setback area (shaded) ── */}
+        {/* ── Setback area ── */}
         <rect
           x={toX(scenario.setback)}
           y={toY(scenario.setback)}
@@ -167,7 +283,8 @@ export function FloorPlanCanvas({
           fill={COLORS.setbackFill}
           stroke={COLORS.setbackLine}
           strokeWidth={1}
-          strokeDasharray="6 4"
+          strokeDasharray="8 4"
+          rx={2}
           className={styles.animFadeIn}
           style={{ animationDelay: `${ANIM.setbackDelay}ms` }}
         />
@@ -178,7 +295,7 @@ export function FloorPlanCanvas({
             className={styles.animFadeIn}
             style={{ animationDelay: `${ANIM.setbackDelay + 100}ms` }}
           >
-            {/* Top setback dimension */}
+            {/* Top setback */}
             <line
               x1={toX(tent.width / 2) - 20}
               y1={toY(0)}
@@ -194,7 +311,7 @@ export function FloorPlanCanvas({
               y={toY(scenario.setback / 2) - 9}
               width={60}
               height={18}
-              rx={4}
+              rx={6}
               fill={COLORS.labelBg}
               stroke={COLORS.dimLine}
               strokeWidth={0.5}
@@ -208,7 +325,7 @@ export function FloorPlanCanvas({
               {formatDim(scenario.setback)}m
             </text>
 
-            {/* Left setback dimension */}
+            {/* Left setback */}
             <line
               x1={toX(0)}
               y1={toY(tent.length / 2) - 20}
@@ -224,7 +341,7 @@ export function FloorPlanCanvas({
               y={toY(tent.length / 2) - 29}
               width={60}
               height={18}
-              rx={4}
+              rx={6}
               fill={COLORS.labelBg}
               stroke={COLORS.dimLine}
               strokeWidth={0.5}
@@ -245,7 +362,6 @@ export function FloorPlanCanvas({
           className={styles.animFadeIn}
           style={{ animationDelay: `${ANIM.railDelay}ms` }}
         >
-          {/* Left rail */}
           <rect
             x={toX(scenario.setback)}
             y={toY(scenario.setback)}
@@ -254,7 +370,6 @@ export function FloorPlanCanvas({
             fill={COLORS.rail}
             rx={1}
           />
-          {/* Right rail */}
           <rect
             x={toX(tent.width - scenario.setback - RAIL_THICKNESS)}
             y={toY(scenario.setback)}
@@ -285,7 +400,6 @@ export function FloorPlanCanvas({
               tabIndex={onColumnClick ? 0 : undefined}
               aria-label={`Column ${colIdx + 1}: ${columnType.braceCount} braces of ${columnType.braceLength}m x ${columnType.braceWidth}m${columnType.gap > 0.001 ? `, gap ${formatDim(columnType.gap)}m` : ''}`}
             >
-              {/* Braces */}
               {Array.from({ length: columnType.braceCount }, (_, i) => {
                 const bx = toX(position);
                 const by = toY(scenario.setback + i * columnType.fillLength);
@@ -301,10 +415,9 @@ export function FloorPlanCanvas({
                       fill={isHovered || isSelected ? COLORS.braceHover : COLORS.brace}
                       stroke={COLORS.braceBorder}
                       strokeWidth={1}
-                      rx={2}
+                      rx={3}
                       className={styles.braceRect}
                     />
-                    {/* Brace dimension label */}
                     {showBraceLabels && i === 0 && (
                       <text
                         x={bx + bw / 2}
@@ -312,7 +425,7 @@ export function FloorPlanCanvas({
                         textAnchor="middle"
                         className={styles.braceDimLabel}
                       >
-                        {formatDim(columnType.braceLength)}x{formatDim(columnType.braceWidth)}
+                        {formatDim(columnType.braceLength)}×{formatDim(columnType.braceWidth)}
                       </text>
                     )}
                   </g>
@@ -330,9 +443,7 @@ export function FloorPlanCanvas({
                 return (
                   <g
                     className={styles.animFadeIn}
-                    style={{
-                      animationDelay: `${colDelay + ANIM.gapExtraDelay}ms`,
-                    }}
+                    style={{ animationDelay: `${colDelay + ANIM.gapExtraDelay}ms` }}
                   >
                     <rect
                       x={gx}
@@ -342,9 +453,8 @@ export function FloorPlanCanvas({
                       fill={COLORS.gap}
                       stroke={COLORS.gapBorder}
                       strokeWidth={1}
-                      rx={1}
+                      rx={2}
                     />
-                    {/* Gap size label */}
                     {showGapLabels && (
                       <text
                         x={gx + gw / 2}
@@ -369,12 +479,12 @@ export function FloorPlanCanvas({
             animationDelay: `${ANIM.columnBaseDelay + scenario.columns.length * ANIM.columnStagger + ANIM.labelDelay}ms`,
           }}
         >
-          {/* Width label (bottom) */}
+          {/* Width (bottom) */}
           <line
             x1={toX(0)}
-            y1={toY(tent.length) + 20}
+            y1={toY(tent.length) + 24}
             x2={toX(tent.width)}
-            y2={toY(tent.length) + 20}
+            y2={toY(tent.length) + 24}
             stroke={COLORS.dimLine}
             strokeWidth={1}
             markerStart="url(#arrowLeft)"
@@ -382,28 +492,28 @@ export function FloorPlanCanvas({
           />
           <rect
             x={toX(tent.width / 2) - 30}
-            y={toY(tent.length) + 11}
+            y={toY(tent.length) + 15}
             width={60}
             height={20}
-            rx={4}
+            rx={6}
             fill={COLORS.labelBg}
             stroke={COLORS.dimLine}
             strokeWidth={0.5}
           />
           <text
             x={toX(tent.width / 2)}
-            y={toY(tent.length) + 25}
+            y={toY(tent.length) + 29}
             textAnchor="middle"
             className={styles.measureLabel}
           >
             {formatDim(tent.width)}m
           </text>
 
-          {/* Length label (right) */}
+          {/* Length (right) */}
           <line
-            x1={toX(tent.width) + 20}
+            x1={toX(tent.width) + 24}
             y1={toY(0)}
-            x2={toX(tent.width) + 20}
+            x2={toX(tent.width) + 24}
             y2={toY(tent.length)}
             stroke={COLORS.dimLine}
             strokeWidth={1}
@@ -411,17 +521,17 @@ export function FloorPlanCanvas({
             markerEnd="url(#arrowDown)"
           />
           <rect
-            x={toX(tent.width) + 10}
+            x={toX(tent.width) + 14}
             y={toY(tent.length / 2) - 10}
             width={60}
             height={20}
-            rx={4}
+            rx={6}
             fill={COLORS.labelBg}
             stroke={COLORS.dimLine}
             strokeWidth={0.5}
           />
           <text
-            x={toX(tent.width) + 40}
+            x={toX(tent.width) + 44}
             y={toY(tent.length / 2) + 4}
             textAnchor="middle"
             className={styles.measureLabel}
@@ -430,7 +540,7 @@ export function FloorPlanCanvas({
           </text>
         </g>
 
-        {/* ── Arrow markers ── */}
+        {/* Arrow markers */}
         <defs>
           <marker id="arrowRight" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
             <path d="M0,0 L8,3 L0,6" fill={COLORS.dimLine} />
@@ -447,26 +557,86 @@ export function FloorPlanCanvas({
         </defs>
       </svg>
 
-      {/* Legend */}
+      {/* ── Legend (bottom-left, floating) ── */}
       <div className={styles.legend}>
         <div className={styles.legendItem}>
-          <span className={styles.legendColor} style={{ backgroundColor: COLORS.brace }} />
+          <span className={styles.legendSwatch} style={{ backgroundColor: COLORS.brace }} />
           <span>Braces</span>
         </div>
         <div className={styles.legendItem}>
-          <span className={styles.legendColor} style={{ backgroundColor: COLORS.gap, border: `1px solid ${COLORS.gapBorder}` }} />
+          <span className={styles.legendSwatch} style={{ backgroundColor: COLORS.gap, border: `1px solid ${COLORS.gapBorder}` }} />
           <span>Gaps</span>
         </div>
         <div className={styles.legendItem}>
-          <span className={styles.legendColor} style={{ backgroundColor: COLORS.rail }} />
+          <span className={styles.legendSwatch} style={{ backgroundColor: COLORS.rail }} />
           <span>Rails</span>
         </div>
       </div>
 
-      {/* Click hint */}
-      {onColumnClick && (
-        <div className={styles.clickHint}>
-          Click a column for details
+      {/* ── Zoom controls (bottom-center, floating) ── */}
+      <div className={styles.zoomBar}>
+        <ZoomControls
+          zoom={zoom}
+          onZoomIn={handleZoomIn}
+          onZoomOut={handleZoomOut}
+          onFitToView={handleFitToView}
+          minZoom={MIN_ZOOM}
+          maxZoom={MAX_ZOOM}
+        />
+      </div>
+
+      {/* ── Mini-map (bottom-right, floating) ── */}
+      {zoom > 1 && (
+        <div className={styles.miniMap}>
+          <svg
+            width={miniMapWidth}
+            height={Math.min(miniMapHeight, 120)}
+            viewBox={`0 0 ${miniMapWidth} ${Math.min(miniMapHeight, 120)}`}
+          >
+            <rect width={miniMapWidth} height={Math.min(miniMapHeight, 120)} rx={6} fill={COLORS.miniMapBg} />
+            {/* Tent outline */}
+            <rect
+              x={miniMapPadding}
+              y={miniMapPadding}
+              width={tent.width * miniMapScale}
+              height={tent.length * miniMapScale}
+              fill="none"
+              stroke={COLORS.tentBorder}
+              strokeWidth={1}
+              rx={1}
+            />
+            {/* Columns */}
+            {scenario.columns.map((col, i) => (
+              <rect
+                key={i}
+                x={miniMapPadding + col.position * miniMapScale}
+                y={miniMapPadding + scenario.setback * miniMapScale}
+                width={col.columnType.columnWidth * miniMapScale}
+                height={scenario.usableLength * miniMapScale}
+                fill={COLORS.brace}
+                opacity={0.5}
+                rx={0.5}
+              />
+            ))}
+            {/* Viewport rectangle */}
+            <rect
+              x={Math.max(0, viewportX)}
+              y={Math.max(0, viewportY)}
+              width={Math.min(viewportW, miniMapWidth)}
+              height={Math.min(viewportH, Math.min(miniMapHeight, 120))}
+              fill={COLORS.miniMapViewport}
+              stroke={COLORS.miniMapViewportBorder}
+              strokeWidth={1.5}
+              rx={2}
+            />
+          </svg>
+        </div>
+      )}
+
+      {/* ── Pan hint ── */}
+      {onColumnClick && zoom === 1 && (
+        <div className={styles.hint}>
+          Click a column for details · Ctrl+Scroll to zoom
         </div>
       )}
     </div>

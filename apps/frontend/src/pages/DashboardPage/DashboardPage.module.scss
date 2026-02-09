@@ -1,104 +1,310 @@
 @use '../../styles/variables' as *;
 
-.container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: $spacing-xl;
-}
-
-.header {
-  text-align: center;
-  margin-bottom: $spacing-xl;
-
-  h1 {
-    color: $text-color;
-    margin-bottom: $spacing-sm;
-  }
-
-  p {
-    color: $text-muted;
-  }
-}
-
-.main {
-  display: grid;
-  grid-template-columns: 1fr 300px;
-  gap: $spacing-xl;
-
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-  }
-}
-
-.form {
+.page {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: $spacing-lg;
 }
 
+// ── Hero ──
+.hero {
+  position: relative;
+  padding: $spacing-4xl $spacing-2xl $spacing-3xl;
+  overflow: hidden;
+
+  @media (max-width: $bp-md) {
+    padding: $spacing-3xl $spacing-lg $spacing-2xl;
+  }
+}
+
+.heroContent {
+  position: relative;
+  z-index: 2;
+  max-width: 640px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.heroTitle {
+  font-size: $font-4xl;
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1.1;
+  color: $text-color;
+  margin-bottom: $spacing-md;
+
+  @media (max-width: $bp-md) {
+    font-size: $font-3xl;
+  }
+}
+
+.heroSubtitle {
+  font-size: $font-lg;
+  color: $text-secondary;
+  line-height: 1.6;
+  max-width: 460px;
+  margin: 0 auto;
+
+  @media (max-width: $bp-md) {
+    font-size: $font-md;
+  }
+}
+
+.heroDecor {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 560px;
+  max-width: 100%;
+  pointer-events: none;
+  z-index: 1;
+
+  .heroSvg {
+    width: 100%;
+    color: $primary-color;
+  }
+}
+
+// ── Content ──
+.content {
+  max-width: $bp-xl;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 $spacing-2xl $spacing-4xl;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-3xl;
+
+  @media (max-width: $bp-md) {
+    padding: 0 $spacing-lg $spacing-3xl;
+    gap: $spacing-2xl;
+  }
+}
+
+// ── Section headers ──
+.sectionHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-md;
+  margin-bottom: $spacing-xl;
+}
+
+.sectionIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: $radius-lg;
+  background: $primary-muted;
+  color: $primary-color;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.sectionTitle {
+  font-size: $font-xl;
+  font-weight: 600;
+  color: $text-color;
+  margin-bottom: $spacing-2xs;
+}
+
+.sectionDesc {
+  font-size: $font-sm;
+  color: $text-muted;
+  line-height: 1.5;
+}
+
+// ── Form section ──
+.formSection {
+  background: $surface-color;
+  border-radius: $radius-2xl;
+  padding: $spacing-2xl;
+  box-shadow: $shadow-md;
+  border: 1px solid $border-light;
+
+  @media (max-width: $bp-md) {
+    padding: $spacing-xl;
+    border-radius: $radius-xl;
+  }
+}
+
+.formBody {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xl;
+}
+
+.generateWrapper {
+  display: flex;
+  justify-content: center;
+  padding-top: $spacing-md;
+}
+
+// ── Error ──
 .error {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: $spacing-md;
-  background-color: rgba($error-color, 0.1);
-  border: 1px solid $error-color;
-  border-radius: $radius-md;
+  gap: $spacing-sm;
+  padding: $spacing-md $spacing-lg;
+  background: $error-bg;
+  border: 1px solid rgba($error-color, 0.15);
+  border-radius: $radius-lg;
   color: $error-color;
+  font-size: $font-sm;
+  font-weight: 500;
+
+  svg:first-child {
+    flex-shrink: 0;
+  }
+
+  span {
+    flex: 1;
+  }
 
   button {
     background: none;
     border: none;
     color: inherit;
-    font-size: $font-lg;
     cursor: pointer;
-    padding: 0 $spacing-xs;
+    padding: $spacing-xs;
+    border-radius: $radius-sm;
+    display: flex;
+    align-items: center;
+    opacity: 0.6;
+    transition: opacity $transition-fast;
 
     &:hover {
-      opacity: 0.7;
+      opacity: 1;
     }
   }
 }
 
-.info {
+// ── Recent projects ──
+.recentSection {
+  // No background — lives on the page bg
+}
+
+.projectGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: $spacing-lg;
+}
+
+.projectCard {
+  display: flex;
+  flex-direction: column;
   background: $surface-color;
-  border-radius: $radius-lg;
-  padding: $spacing-lg;
-  box-shadow: $shadow-sm;
-  height: fit-content;
+  border: 1px solid $border-light;
+  border-radius: $radius-xl;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+  transition: all $transition-smooth;
+  box-shadow: $shadow-xs;
 
-  h3 {
-    font-size: $font-md;
-    color: $text-color;
-    margin-bottom: $spacing-md;
+  &:hover {
+    transform: translateY(-3px);
+    box-shadow: $shadow-lg;
+    border-color: $border-color;
+  }
+}
 
-    &:not(:first-child) {
-      margin-top: $spacing-lg;
-    }
+.projectPreview {
+  background: $canvas-background;
+  padding: $spacing-lg $spacing-md;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  .projectPreviewSvg {
+    width: 100%;
+    max-width: 160px;
+    color: $primary-color;
+    transition: transform $transition-smooth;
   }
 
-  ol {
-    padding-left: $spacing-lg;
-    color: $text-muted;
-    font-size: $font-sm;
-
-    li {
-      margin-bottom: $spacing-sm;
-    }
+  .projectCard:hover & .projectPreviewSvg {
+    transform: scale(1.04);
   }
+}
 
-  dl {
-    dt {
-      font-weight: 600;
-      color: $text-color;
-      font-size: $font-sm;
-      margin-top: $spacing-sm;
-    }
+.projectInfo {
+  padding: $spacing-lg $spacing-lg $spacing-sm;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-2xs;
+}
 
-    dd {
-      color: $text-muted;
-      font-size: $font-sm;
-      margin-left: 0;
-    }
+.projectName {
+  font-size: $font-md;
+  font-weight: 600;
+  color: $text-color;
+}
+
+.projectDims {
+  font-size: $font-sm;
+  color: $text-secondary;
+  font-weight: 500;
+  font-family: $font-mono;
+  letter-spacing: 0;
+}
+
+.projectMeta {
+  padding: $spacing-sm $spacing-lg $spacing-lg;
+  font-size: $font-xs;
+  color: $text-muted;
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+}
+
+.projectDot {
+  opacity: 0.4;
+}
+
+// ── Empty card (template) ──
+.projectCardEmpty {
+  border-style: dashed;
+  border-color: $border-color;
+  background: $surface-raised;
+  align-items: center;
+  justify-content: center;
+  padding: $spacing-3xl $spacing-xl;
+  min-height: 200px;
+
+  &:hover {
+    border-color: $primary-light;
+    background: $primary-muted;
+  }
+}
+
+.emptyIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: $radius-full;
+  background: $primary-muted;
+  color: $primary-color;
+  margin-bottom: $spacing-md;
+  transition: all $transition-smooth;
+
+  .projectCardEmpty:hover & {
+    background: rgba($primary-color, 0.15);
+    transform: scale(1.08);
+  }
+}
+
+.emptyText {
+  font-size: $font-sm;
+  font-weight: 500;
+  color: $text-secondary;
+
+  .projectCardEmpty:hover & {
+    color: $primary-color;
   }
 }

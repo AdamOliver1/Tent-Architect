@@ -1,0 +1,83 @@
+{
+  "app": {
+    "title": "אדריכל אוהלים",
+    "subtitle": "עצב תוכניות רצפת אוהל מותאמות בדיוק"
+  },
+  "nav": {
+    "dashboard": "לוח בקרה"
+  },
+  "dashboard": {
+    "heroTitle": "עצב את תוכנית הרצפה שלך",
+    "heroSubtitle": "הגדר מידות אוהל, קבע את המלאי שלך, וצור פריסות מותאמות בשניות.",
+    "newProject": "תוכנית רצפה חדשה",
+    "newProjectDesc": "הגדר את מידות האוהל והמלאי שלך ליצירת תרחישים מותאמים.",
+    "recentProjects": "פרויקטים אחרונים",
+    "recentProjectsDesc": "המשך מאיפה שהפסקת או התחל מתבנית.",
+    "startFromTemplate": "התחל מתבנית"
+  },
+  "language": {
+    "select": "בחר שפה",
+    "english": "English",
+    "hebrew": "עברית",
+    "arabic": "العربية"
+  },
+  "tent": {
+    "dimensions": "מידות האוהל",
+    "length": "אורך",
+    "width": "רוחב",
+    "lengthPlaceholder": "הזן אורך",
+    "widthPlaceholder": "הזן רוחב",
+    "lengthHint": "כיוון המסילה",
+    "widthHint": "כיוון העמודה"
+  },
+  "inventory": {
+    "title": "מלאי",
+    "braces": "חיזוקים",
+    "rails": "מסילות",
+    "size": "גודל",
+    "quantity": "כמות",
+    "add": "הוסף",
+    "addBrace": "הוסף חיזוק",
+    "addRail": "הוסף מסילה",
+    "remove": "הסר",
+    "lengthPlaceholder": "אורך",
+    "widthPlaceholder": "רוחב",
+    "qtyPlaceholder": "כמות"
+  },
+  "button": {
+    "generate": "צור תוכנית רצפה",
+    "backToDashboard": "חזור ללוח הבקרה",
+    "loading": "מחשב..."
+  },
+  "results": {
+    "title": "תוצאות תוכנית הרצפה",
+    "scenarios": "תרחישים",
+    "scenario": "תרחיש",
+    "selectScenario": "לחץ על תרחיש לצפייה בפרטים",
+    "setback": "נסיגה",
+    "columns": "עמודות",
+    "braces": "חיזוקים",
+    "usable": "שמיש",
+    "columnDetails": "פרטים",
+    "columnNumber": "עמודה",
+    "braceSize": "גודל חיזוק",
+    "orientation": "כיוון",
+    "rotated": "מסובב",
+    "columnWidth": "רוחב עמודה",
+    "fillLength": "אורך מילוי",
+    "gap": "פער",
+    "close": "סגור פרטי עמודה"
+  },
+  "export": {
+    "title": "ייצוא תוכנית רצפה",
+    "exportBtn": "ייצוא",
+    "download": "הורדה",
+    "cancel": "ביטול",
+    "close": "סגור חלון ייצוא"
+  },
+  "error": {
+    "invalidDimensions": "אנא הזן מידות אוהל תקינות",
+    "calculationFailed": "החישוב נכשל. אנא נסה שוב.",
+    "generic": "משהו השתבש"
+  }
+}

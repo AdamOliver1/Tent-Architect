@@ -1,0 +1,72 @@
+@use '../../styles/variables' as *;
+
+.container {
+  display: flex;
+  align-items: center;
+  gap: $spacing-2xs;
+  background: rgba($surface-color, 0.92);
+  backdrop-filter: blur(12px) saturate(1.3);
+  -webkit-backdrop-filter: blur(12px) saturate(1.3);
+  padding: $spacing-xs;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-md;
+  border: 1px solid rgba($border-color, 0.5);
+}
+
+.btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: $radius-md;
+  background: transparent;
+  color: $text-secondary;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover:not(:disabled) {
+    background: $primary-muted;
+    color: $primary-color;
+  }
+
+  &:active:not(:disabled) {
+    transform: scale(0.92);
+  }
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+}
+
+.level {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 52px;
+  height: 28px;
+  border: none;
+  border-radius: $radius-sm;
+  background: $background-color;
+  color: $text-secondary;
+  font-size: $font-xs;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: all $transition-fast;
+  padding: 0 $spacing-sm;
+
+  &:hover {
+    background: $primary-muted;
+    color: $primary-color;
+  }
+}
+
+.divider {
+  width: 1px;
+  height: 20px;
+  background: $border-light;
+  margin: 0 $spacing-2xs;
+}

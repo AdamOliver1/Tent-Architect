@@ -2,59 +2,112 @@
 
 .card {
   width: 100%;
+  display: flex;
+  align-items: stretch;
   background: $surface-color;
-  border: 2px solid $border-color;
-  border-radius: $radius-lg;
-  padding: $spacing-md;
+  border: 1px solid $border-light;
+  border-radius: $radius-xl;
+  padding: 0;
   text-align: left;
   cursor: pointer;
-  transition: all $transition-fast;
+  overflow: hidden;
+  transition: all $transition-smooth;
+  box-shadow: $shadow-xs;
 
   &:hover {
-    border-color: $primary-color;
+    border-color: $primary-light;
     box-shadow: $shadow-md;
+    transform: translateY(-1px);
   }
 
   &.selected {
     border-color: $primary-color;
-    background-color: rgba($primary-color, 0.05);
+    box-shadow: 0 0 0 1px $primary-color, $shadow-md;
   }
 }
 
-.name {
-  font-size: $font-lg;
-  color: $text-color;
-  margin-bottom: $spacing-md;
+// ── Left indicator stripe ──
+.indicator {
+  width: 4px;
+  flex-shrink: 0;
+  background: $border-light;
+  transition: background $transition-normal;
+
+  .selected & {
+    background: $primary-color;
+  }
 }
 
+.body {
+  flex: 1;
+  padding: $spacing-lg;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.name {
+  font-size: $font-md;
+  font-weight: 600;
+  color: $text-color;
+  letter-spacing: -0.01em;
+}
+
+// ── Metrics row ──
 .metrics {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: $spacing-sm;
-  margin-bottom: $spacing-md;
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
 }
 
 .metric {
   display: flex;
   flex-direction: column;
+  gap: $spacing-2xs;
+  flex: 1;
 }
 
-.label {
-  font-size: $font-xs;
-  color: $text-muted;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.value {
-  font-size: $font-md;
+.metricValue {
+  font-size: $font-lg;
   font-weight: 600;
   color: $text-color;
+  font-variant-numeric: tabular-nums;
 }
 
-.dimensions {
-  font-size: $font-sm;
+.metricLabel {
+  font-size: $font-2xs;
+  font-weight: 500;
   color: $text-muted;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.metricDivider {
+  width: 1px;
+  height: 28px;
+  background: $border-light;
+  flex-shrink: 0;
+}
+
+// ── Usable area ──
+.usable {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   padding-top: $spacing-sm;
-  border-top: 1px solid $border-color;
+  border-top: 1px solid $border-light;
+}
+
+.usableLabel {
+  font-size: $font-xs;
+  color: $text-muted;
+  font-weight: 500;
+}
+
+.usableValue {
+  font-size: $font-sm;
+  font-weight: 600;
+  color: $text-secondary;
+  font-family: $font-mono;
+  letter-spacing: 0;
 }

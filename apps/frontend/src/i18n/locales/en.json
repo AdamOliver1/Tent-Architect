@@ -1,0 +1,83 @@
+{
+  "app": {
+    "title": "Tent Architect",
+    "subtitle": "Design optimized tent floor plans with precision"
+  },
+  "nav": {
+    "dashboard": "Dashboard"
+  },
+  "dashboard": {
+    "heroTitle": "Design Your Floor Plan",
+    "heroSubtitle": "Configure tent dimensions, set your inventory, and generate optimized layouts in seconds.",
+    "newProject": "New Floor Plan",
+    "newProjectDesc": "Set your tent dimensions and inventory to generate optimized scenarios.",
+    "recentProjects": "Recent Projects",
+    "recentProjectsDesc": "Pick up where you left off or start from a template.",
+    "startFromTemplate": "Start from Template"
+  },
+  "language": {
+    "select": "Select Language",
+    "english": "English",
+    "hebrew": "עברית",
+    "arabic": "العربية"
+  },
+  "tent": {
+    "dimensions": "Tent Dimensions",
+    "length": "Length",
+    "width": "Width",
+    "lengthPlaceholder": "Enter length",
+    "widthPlaceholder": "Enter width",
+    "lengthHint": "Rail direction",
+    "widthHint": "Column direction"
+  },
+  "inventory": {
+    "title": "Inventory",
+    "braces": "Braces",
+    "rails": "Rails",
+    "size": "Size",
+    "quantity": "Qty",
+    "add": "Add",
+    "addBrace": "Add Brace",
+    "addRail": "Add Rail",
+    "remove": "Remove",
+    "lengthPlaceholder": "Length",
+    "widthPlaceholder": "Width",
+    "qtyPlaceholder": "Qty"
+  },
+  "button": {
+    "generate": "Generate Floor Plan",
+    "backToDashboard": "Back to Dashboard",
+    "loading": "Calculating..."
+  },
+  "results": {
+    "title": "Floor Plan Results",
+    "scenarios": "Scenarios",
+    "scenario": "Scenario",
+    "selectScenario": "Click a scenario to view details",
+    "setback": "Setback",
+    "columns": "Columns",
+    "braces": "Braces",
+    "usable": "Usable",
+    "columnDetails": "details",
+    "columnNumber": "Column",
+    "braceSize": "Brace size",
+    "orientation": "Orientation",
+    "rotated": "Rotated",
+    "columnWidth": "Column width",
+    "fillLength": "Fill length",
+    "gap": "Gap",
+    "close": "Close column details"
+  },
+  "export": {
+    "title": "Export Floor Plan",
+    "exportBtn": "Export",
+    "download": "Download",
+    "cancel": "Cancel",
+    "close": "Close export dialog"
+  },
+  "error": {
+    "invalidDimensions": "Please enter valid tent dimensions",
+    "calculationFailed": "Calculation failed. Please try again.",
+    "generic": "Something went wrong"
+  }
+}

@@ -1,48 +1,88 @@
 @use '../../styles/variables' as *;
 
 .container {
-  background: $surface-color;
-  border-radius: $radius-lg;
-  box-shadow: $shadow-sm;
+  border: 1px solid $border-light;
+  border-radius: $radius-xl;
   overflow: hidden;
+  transition: border-color $transition-normal;
+
+  &:hover {
+    border-color: $border-color;
+  }
 }
 
+// ── Toggle header ──
 .header {
   width: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: $spacing-lg;
+  padding: $spacing-lg $spacing-xl;
   background: none;
   border: none;
   cursor: pointer;
   text-align: left;
+  transition: background $transition-fast;
 
   h3 {
+    font-size: $font-md;
+    font-weight: 600;
     color: $text-color;
     margin: 0;
   }
 
   &:hover {
-    background-color: $background-color;
+    background: rgba($background-color, 0.6);
   }
 }
 
-.toggle {
-  font-size: $font-xl;
-  color: $text-muted;
-  line-height: 1;
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
 }
 
+.chevron {
+  color: $text-muted;
+  transition: transform $transition-smooth;
+  flex-shrink: 0;
+}
+
+.chevronOpen {
+  transform: rotate(90deg);
+}
+
+.badge {
+  font-size: $font-xs;
+  font-weight: 500;
+  color: $text-muted;
+  background: $background-color;
+  padding: $spacing-2xs $spacing-sm;
+  border-radius: $radius-full;
+}
+
+// ── Expanded content ──
 .content {
-  padding: 0 $spacing-lg $spacing-lg;
+  padding: 0 $spacing-xl $spacing-xl;
+  animation: slideDown 250ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .section {
   &:not(:last-child) {
-    margin-bottom: $spacing-lg;
-    padding-bottom: $spacing-lg;
-    border-bottom: 1px solid $border-color;
+    margin-bottom: $spacing-xl;
+    padding-bottom: $spacing-xl;
+    border-bottom: 1px solid $border-light;
   }
 }
 
@@ -54,13 +94,14 @@
 
   h4 {
     font-size: $font-sm;
-    font-weight: 500;
-    color: $text-muted;
+    font-weight: 600;
+    color: $text-secondary;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.06em;
   }
 }
 
+// ── Items ──
 .items {
   display: flex;
   flex-direction: column;
@@ -69,65 +110,117 @@
 
 .item {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   gap: $spacing-sm;
+  padding: $spacing-sm;
+  border-radius: $radius-md;
+  transition: background $transition-fast;
+
+  &:hover {
+    background: rgba($background-color, 0.5);
+  }
 }
 
 .itemFields {
   flex: 1;
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   gap: $spacing-sm;
+  flex-wrap: wrap;
+}
+
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-2xs;
 
   input {
-    width: 70px;
-    padding: $spacing-xs $spacing-sm;
+    width: 80px;
+    padding: $spacing-sm $spacing-md;
     border: 1px solid $border-color;
-    border-radius: $radius-sm;
+    border-radius: $radius-md;
     font-size: $font-sm;
+    font-weight: 500;
+    color: $text-color;
+    background: $surface-color;
+    transition: all $transition-fast;
+    -moz-appearance: textfield;
+
+    &::-webkit-outer-spin-button,
+    &::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
 
     &:focus {
       outline: none;
       border-color: $primary-color;
+      box-shadow: 0 0 0 2px $primary-muted;
     }
 
     &:disabled {
-      background-color: $background-color;
+      background: $background-color;
       cursor: not-allowed;
+      color: $text-muted;
     }
   }
+}
 
-  span {
-    color: $text-muted;
-    font-size: $font-sm;
-  }
+.microLabel {
+  font-size: $font-2xs;
+  font-weight: 500;
+  color: $text-muted;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.times {
+  color: $text-muted;
+  font-size: $font-sm;
+  padding-bottom: $spacing-sm;
+  user-select: none;
+}
+
+.unitLabel {
+  color: $text-muted;
+  font-size: $font-sm;
+  font-weight: 500;
+  padding-bottom: $spacing-sm;
+  user-select: none;
 }
 
 .qtyInput {
-  width: 60px !important;
+  width: 68px !important;
 }
 
 .removeBtn {
-  width: 24px;
-  height: 24px;
+  width: 30px;
+  height: 30px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: none;
   border: none;
-  border-radius: $radius-sm;
+  border-radius: $radius-md;
   color: $text-muted;
   cursor: pointer;
-  font-size: $font-lg;
-  line-height: 1;
+  transition: all $transition-fast;
+  flex-shrink: 0;
+  margin-bottom: 2px;
 
   &:hover:not(:disabled) {
     color: $error-color;
-    background-color: rgba($error-color, 0.1);
+    background: $error-bg;
   }
 
   &:disabled {
-    opacity: 0.3;
+    opacity: 0.2;
     cursor: not-allowed;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .content {
+    animation: none;
   }
 }

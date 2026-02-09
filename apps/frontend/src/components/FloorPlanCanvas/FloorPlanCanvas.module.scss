@@ -2,28 +2,50 @@
 
 .container {
   width: 100%;
-  background: $surface-color;
-  border-radius: $radius-lg;
-  box-shadow: $shadow-md;
-  overflow: hidden;
+  height: 100%;
+  min-height: 500px;
   position: relative;
+  border-radius: $radius-xl;
+  overflow: hidden;
+  background: $canvas-background;
+
+  // Subtle crosshatch texture to differentiate canvas from UI
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(circle, rgba(0,0,0,0.02) 1px, transparent 1px);
+    background-size: 16px 16px;
+    pointer-events: none;
+    z-index: 0;
+  }
+}
+
+.panning {
+  cursor: grabbing;
+}
+
+.canvasBg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
 }
 
 .svg {
   display: block;
   width: 100%;
-  height: auto;
+  height: 100%;
+  position: relative;
+  z-index: 1;
+  transition: transform 120ms ease-out;
 }
 
 // ── Animations ──
 
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 @keyframes slideUp {
@@ -53,12 +75,12 @@
   transition: filter 150ms ease;
 
   &:hover {
-    filter: brightness(1.08);
+    filter: brightness(1.06);
   }
 }
 
 .columnSelected {
-  filter: brightness(1.05) drop-shadow(0 0 4px rgba($primary-color, 0.4));
+  filter: brightness(1.04) drop-shadow(0 0 6px rgba(90, 122, 108, 0.35));
 }
 
 .braceRect {
@@ -69,63 +91,117 @@
 
 .dimLabel {
   font-size: 10px;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  fill: $secondary-color;
+  font-family: $font-family;
+  fill: $text-muted;
   font-weight: 500;
 }
 
 .measureLabel {
   font-size: 12px;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: $font-family;
   fill: $text-color;
   font-weight: 600;
 }
 
 .braceDimLabel {
   font-size: 9px;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  fill: rgba(255, 255, 255, 0.95);
+  font-family: $font-family;
+  fill: rgba(255, 255, 255, 0.92);
   font-weight: 600;
   pointer-events: none;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 .gapDimLabel {
   font-size: 8px;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: $font-family;
   fill: #92400e;
   font-weight: 600;
   pointer-events: none;
 }
 
-// ── Legend ──
+// ── Legend (floating, bottom-left) ──
 
 .legend {
   position: absolute;
-  bottom: $spacing-md;
-  left: $spacing-md;
+  bottom: $spacing-lg;
+  left: $spacing-lg;
+  z-index: $z-controls;
   display: flex;
   gap: $spacing-md;
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(8px);
-  padding: $spacing-sm $spacing-md;
-  border-radius: $radius-md;
-  font-size: $font-sm;
+  background: rgba($surface-color, 0.9);
+  backdrop-filter: blur(10px) saturate(1.3);
+  -webkit-backdrop-filter: blur(10px) saturate(1.3);
+  padding: $spacing-sm $spacing-lg;
+  border-radius: $radius-lg;
+  font-size: $font-xs;
   box-shadow: $shadow-sm;
+  border: 1px solid rgba($border-color, 0.4);
 }
 
 .legendItem {
   display: flex;
   align-items: center;
-  gap: $spacing-xs;
-  color: $text-muted;
+  gap: 6px;
+  color: $text-secondary;
+  font-weight: 500;
 }
 
-.legendColor {
-  width: 16px;
-  height: 12px;
+.legendSwatch {
+  width: 14px;
+  height: 10px;
   border-radius: 3px;
   flex-shrink: 0;
+}
+
+// ── Zoom bar (floating, bottom-center) ──
+
+.zoomBar {
+  position: absolute;
+  bottom: $spacing-lg;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: $z-controls;
+}
+
+// ── Mini-map (floating, bottom-right) ──
+
+.miniMap {
+  position: absolute;
+  bottom: $spacing-lg;
+  right: $spacing-lg;
+  z-index: $z-controls;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-md;
+  border: 1px solid rgba($border-color, 0.4);
+  overflow: hidden;
+  animation: fadeIn 200ms ease-out;
+}
+
+// ── Hint ──
+
+.hint {
+  position: absolute;
+  top: $spacing-lg;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: $z-controls;
+  font-size: $font-xs;
+  font-weight: 500;
+  color: $text-muted;
+  background: rgba($surface-color, 0.88);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  padding: $spacing-xs $spacing-md;
+  border-radius: $radius-full;
+  opacity: 0;
+  transition: opacity 300ms ease;
+  pointer-events: none;
+  white-space: nowrap;
+  box-shadow: $shadow-xs;
+
+  .container:hover & {
+    opacity: 0.85;
+  }
 }
 
 // ── Reduced motion ──
@@ -142,6 +218,10 @@
   .braceRect {
     transition: none;
   }
+
+  .svg {
+    transition: none;
+  }
 }
 
 // ── Focus indicators ──
@@ -149,24 +229,4 @@
 .columnGroup:focus {
   outline: 2px solid $primary-color;
   outline-offset: 2px;
-}
-
-// ── Click hint ──
-
-.clickHint {
-  position: absolute;
-  bottom: $spacing-md;
-  right: $spacing-md;
-  font-size: $font-xs;
-  color: $text-muted;
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(8px);
-  padding: $spacing-xs $spacing-sm;
-  border-radius: $radius-sm;
-  opacity: 0.7;
-  transition: opacity 200ms ease;
-
-  .container:hover & {
-    opacity: 1;
-  }
 }

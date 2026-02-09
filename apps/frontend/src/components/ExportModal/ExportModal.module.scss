@@ -1,0 +1,213 @@
+@use '../../styles/variables' as *;
+
+// ── Dialog overlay ──
+.dialog {
+  border: none;
+  background: transparent;
+  padding: 0;
+  max-width: none;
+  max-height: none;
+  width: 100%;
+  height: 100%;
+  position: fixed;
+  inset: 0;
+
+  &::backdrop {
+    background: rgba(42, 47, 46, 0.4);
+    backdrop-filter: blur(4px);
+    animation: fadeIn 200ms ease-out;
+  }
+
+  // Center the modal
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+// ── Modal container ──
+.modal {
+  width: 480px;
+  max-width: calc(100vw - 2 * $spacing-xl);
+  background: $surface-color;
+  border-radius: $radius-2xl;
+  box-shadow: $shadow-xl;
+  overflow: hidden;
+  animation: slideUp 300ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+// ── Header ──
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: $spacing-xl $spacing-xl $spacing-lg;
+}
+
+.title {
+  font-size: $font-xl;
+  font-weight: 600;
+  color: $text-color;
+}
+
+.subtitle {
+  font-size: $font-sm;
+  color: $text-muted;
+  margin-top: $spacing-2xs;
+}
+
+.closeBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: $radius-md;
+  background: transparent;
+  color: $text-muted;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    background: $background-color;
+    color: $text-color;
+  }
+}
+
+// ── Format selection ──
+.formats {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+  padding: 0 $spacing-xl;
+}
+
+.formatCard {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  width: 100%;
+  padding: $spacing-lg;
+  background: $surface-color;
+  border: 1.5px solid $border-light;
+  border-radius: $radius-xl;
+  cursor: pointer;
+  text-align: left;
+  transition: all $transition-normal;
+
+  &:hover {
+    border-color: $primary-light;
+    background: $primary-muted;
+  }
+
+  &.formatSelected {
+    border-color: $primary-color;
+    background: $primary-muted;
+    box-shadow: 0 0 0 1px $primary-color;
+  }
+}
+
+.formatIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: $radius-lg;
+  background: $background-color;
+  color: $text-secondary;
+  flex-shrink: 0;
+  transition: all $transition-normal;
+
+  .formatSelected & {
+    background: rgba($primary-color, 0.12);
+    color: $primary-color;
+  }
+}
+
+.formatInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-2xs;
+}
+
+.formatLabel {
+  font-size: $font-md;
+  font-weight: 600;
+  color: $text-color;
+}
+
+.formatDesc {
+  font-size: $font-xs;
+  color: $text-muted;
+  line-height: 1.4;
+}
+
+// ── Radio indicator ──
+.radio {
+  width: 20px;
+  height: 20px;
+  border: 2px solid $border-color;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all $transition-normal;
+
+  .formatSelected & {
+    border-color: $primary-color;
+  }
+}
+
+.radioInner {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: transparent;
+  transition: all $transition-normal;
+  transform: scale(0);
+
+  .formatSelected & {
+    background: $primary-color;
+    transform: scale(1);
+  }
+}
+
+// ── Footer ──
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: $spacing-sm;
+  padding: $spacing-xl;
+  margin-top: $spacing-md;
+}
+
+// ── Reduced motion ──
+@media (prefers-reduced-motion: reduce) {
+  .modal {
+    animation: none;
+  }
+
+  .dialog::backdrop {
+    animation: none;
+  }
+}

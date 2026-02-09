@@ -1,0 +1,83 @@
+{
+  "app": {
+    "title": "مهندس الخيام",
+    "subtitle": "صمم مخططات أرضية خيمة محسنة بدقة"
+  },
+  "nav": {
+    "dashboard": "لوحة التحكم"
+  },
+  "dashboard": {
+    "heroTitle": "صمم مخطط الأرضية الخاص بك",
+    "heroSubtitle": "قم بتكوين أبعاد الخيمة وتعيين المخزون وإنشاء تخطيطات محسنة في ثوانٍ.",
+    "newProject": "مخطط أرضية جديد",
+    "newProjectDesc": "قم بتعيين أبعاد الخيمة والمخزون لإنشاء سيناريوهات محسنة.",
+    "recentProjects": "المشاريع الأخيرة",
+    "recentProjectsDesc": "تابع من حيث توقفت أو ابدأ من قالب.",
+    "startFromTemplate": "ابدأ من قالب"
+  },
+  "language": {
+    "select": "اختر اللغة",
+    "english": "English",
+    "hebrew": "עברית",
+    "arabic": "العربية"
+  },
+  "tent": {
+    "dimensions": "أبعاد الخيمة",
+    "length": "الطول",
+    "width": "العرض",
+    "lengthPlaceholder": "أدخل الطول",
+    "widthPlaceholder": "أدخل العرض",
+    "lengthHint": "اتجاه القضيب",
+    "widthHint": "اتجاه العمود"
+  },
+  "inventory": {
+    "title": "المخزون",
+    "braces": "الدعامات",
+    "rails": "القضبان",
+    "size": "الحجم",
+    "quantity": "الكمية",
+    "add": "إضافة",
+    "addBrace": "إضافة دعامة",
+    "addRail": "إضافة قضيب",
+    "remove": "إزالة",
+    "lengthPlaceholder": "الطول",
+    "widthPlaceholder": "العرض",
+    "qtyPlaceholder": "الكمية"
+  },
+  "button": {
+    "generate": "إنشاء مخطط الأرضية",
+    "backToDashboard": "العودة إلى لوحة التحكم",
+    "loading": "جاري الحساب..."
+  },
+  "results": {
+    "title": "نتائج مخطط الأرضية",
+    "scenarios": "السيناريوهات",
+    "scenario": "سيناريو",
+    "selectScenario": "انقر فوق سيناريو لعرض التفاصيل",
+    "setback": "التراجع",
+    "columns": "الأعمدة",
+    "braces": "الدعامات",
+    "usable": "قابل للاستخدام",
+    "columnDetails": "تفاصيل",
+    "columnNumber": "عمود",
+    "braceSize": "حجم الدعامة",
+    "orientation": "الاتجاه",
+    "rotated": "مدور",
+    "columnWidth": "عرض العمود",
+    "fillLength": "طول التعبئة",
+    "gap": "فجوة",
+    "close": "إغلاق تفاصيل العمود"
+  },
+  "export": {
+    "title": "تصدير مخطط الأرضية",
+    "exportBtn": "تصدير",
+    "download": "تحميل",
+    "cancel": "إلغاء",
+    "close": "إغلاق نافذة التصدير"
+  },
+  "error": {
+    "invalidDimensions": "يرجى إدخال أبعاد خيمة صالحة",
+    "calculationFailed": "فشل الحساب. يرجى المحاولة مرة أخرى.",
+    "generic": "حدث خطأ ما"
+  }
+}

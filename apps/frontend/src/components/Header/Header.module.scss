@@ -1,0 +1,141 @@
+@use '../../styles/variables' as *;
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: $z-header;
+  background: rgba($surface-color, 0.85);
+  backdrop-filter: blur(16px) saturate(1.4);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  border-bottom: 1px solid $border-light;
+}
+
+.inner {
+  max-width: $bp-xl;
+  margin: 0 auto;
+  padding: $spacing-md $spacing-2xl;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-lg;
+
+  @media (max-width: $bp-sm) {
+    padding: $spacing-md $spacing-lg;
+  }
+}
+
+// ── Logo ──
+.logo {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: $spacing-xs $spacing-sm;
+  margin: -$spacing-xs -$spacing-sm;
+  border-radius: $radius-md;
+  transition: opacity $transition-fast;
+
+  &:hover {
+    opacity: 0.75;
+  }
+}
+
+.logoIcon {
+  color: $primary-color;
+  flex-shrink: 0;
+}
+
+.logoText {
+  font-size: $font-lg;
+  font-weight: 600;
+  color: $text-color;
+  letter-spacing: -0.03em;
+}
+
+// ── Right actions ──
+.actions {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+}
+
+.backBtn {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  background: none;
+  border: none;
+  font-size: $font-sm;
+  font-weight: 500;
+  color: $text-secondary;
+  cursor: pointer;
+  padding: $spacing-xs $spacing-sm;
+  border-radius: $radius-md;
+  transition: all $transition-fast;
+
+  &:hover {
+    color: $text-color;
+    background: $primary-muted;
+  }
+}
+
+// ── Language selector ──
+.langWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.langIcon {
+  position: absolute;
+  left: 10px;
+  color: $text-muted;
+  pointer-events: none;
+}
+
+.langSelect {
+  appearance: none;
+  padding: $spacing-xs $spacing-lg $spacing-xs $spacing-2xl;
+  padding-left: 32px;
+  border: 1px solid $border-color;
+  border-radius: $radius-md;
+  background: $surface-color;
+  color: $text-secondary;
+  font-size: $font-sm;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all $transition-fast;
+  min-width: 100px;
+
+  // Custom dropdown arrow
+  background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238A9290' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+
+  &:hover {
+    border-color: $primary-light;
+  }
+
+  &:focus {
+    outline: none;
+    border-color: $primary-color;
+    box-shadow: 0 0 0 3px $primary-muted;
+  }
+}
+
+// ── RTL ──
+[dir='rtl'] {
+  .langIcon {
+    left: auto;
+    right: 10px;
+  }
+
+  .langSelect {
+    padding-left: $spacing-lg;
+    padding-right: 32px;
+    background-position: left 10px center;
+  }
+}
+

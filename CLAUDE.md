@@ -1,5 +1,9 @@
 # Tent Floor Planner
 
+## user prompting
+for each prompt i (the user) gives you, your first step is to rewrite the prompt to be more detailed and specific for ai model, and then ask the user if the new prompt fits him, give him more options, and final option to continue with the original prompt
+
+
 ## Project Structure
 Monorepo with two apps:
 - `apps/backend/` — NestJS API (calculation engine)
