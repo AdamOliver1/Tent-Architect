@@ -21,9 +21,14 @@ export interface RailSegment {
 export interface Scenario {
   name: string;
   setback: number;
+  openEndSetbackStart: number;
+  openEndSetbackEnd: number;
   totalGap: number;
   columns: Column[];
   rails: RailSegment[][];
   usableWidth: number;
   usableLength: number;
+  tentLength: number;
+  tentWidth: number;
+  distinctBraceTypes: number;
 }

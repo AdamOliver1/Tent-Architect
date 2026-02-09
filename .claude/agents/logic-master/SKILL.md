@@ -13,32 +13,36 @@ You are a specialized agent with deep expertise in the tent floor planning optim
 
 **Input:**
 - Tent dimensions: Length (L) × Width (W) in meters
-- Brace inventory: List of panel sizes (2.45×1.22m, 2×1m, 0.5×2m, 0.6×2.44m)
-- Rail inventory: Beam lengths (1m, 5m, 7.36m)
+- Brace inventory: List of panel sizes will be recieved from the user, for example: (2.45×1.22m, 2×1m, 0.5×2m, 0.6×2.44m)
+- Rail inventory: Beam lengths will be recieved from the user, for example: (1m, 2m, 3m, 4m, 6m, 5m, 7.36m)
 
 **Output:**
-- 3 optimal floor layouts on the Pareto front
+- 3-6 optimal floor layouts on the Pareto front
 
 **Constraints:**
-- Minimum setback: 0.15m from all tent edges
+- Minimum setback: 0.08m from all tent edges (hard floor)
+- Maximum setback: 0.25m from all tent edges (hard ceiling)
+- Preferred setback range: 0.10m–0.20m
+- Setback can be different on each side (asymmetric), as long as each side is within [0.08m, 0.25m]
 - Rail thickness: 0.05m (5cm)
-- Rails run parallel to tent length
+- Rails run parallel to tent length or parallel to tent width, doesn't matter which option, depends on the best scenario.
 - Braces can be rotated 90°
+- Each column in the floor can have a different size of brace inside it, but in a column there will be the same braces.
 
 ## Two Competing Objectives
 
 ### Objective A: Rail End Fit (Minimize Setback Increase)
 - Rail ends are the sides PARALLEL to rails
 - Must be symmetric — no bins allowed
-- Excess width → increase setback equally on both sides
+- Excess width → increase setback, DOESN'T have to be equally on both sides, each side MUST be between 0.08m–0.25m (preferably 0.10m–0.20m).
 - Formula: `setback_excess = usable_width - [(k+1) × 0.05 + Σ(column_widths)]`
-- Where `usable_width = tent_width - 2 × 0.15` and `k` = number of columns
+- Where `usable_width = tent_width - 2 × 0.08` and `k` = number of columns
+- Discard any solution where setback on any side < 0.08m or > 0.25m
 
 ### Objective B: Open End Fit (Minimize Total Gaps)
 - Open ends are sides PERPENDICULAR to rails
-- Bins (filler pieces) allowed to cover gaps
-- Formula: `total_gap = Σ(gap_in_each_column)`
-- Gap per column: `usable_length - n × brace_fill_dimension`
+- in each column you can have a gap at the end of the column (because each column can have a different size of brace inside, so the gap don't have to be the same sizes.)
+
 
 ## Algorithm Steps
 
@@ -47,13 +51,14 @@ For each brace type and each rotation (0°, 90°):
 ```
 column_width = brace dimension perpendicular to rails
 fill_length = brace dimension parallel to rails
-usable_length = tent_length - 2 × setback
+usable_length = tent_length - 2 × 0.08   # Use min setback for max usable length
 
 n_braces = floor(usable_length / fill_length)
 gap = usable_length - n_braces × fill_length
 
 column_type = {
   width: column_width,
+  fill_length: fill_length,
   gap: gap,
   n_braces: n_braces,
   brace_type: original brace,
@@ -63,34 +68,61 @@ column_type = {
 
 ### Step 2: DP Column Combination Search
 - Discretize width to centimeters for DP table
-- State: `current_total_width → Set<(setback_excess, total_gap, column_list)>`
-- Keep only Pareto-optimal states at each width
+- State: `current_total_width → Set<(total_gap, column_list, distinct_brace_types)>`
+- Track `distinct_brace_types` = number of unique brace sizes used in the combination
+- Keep only Pareto-optimal states at each width (compare on total_gap)
 
 **Transition:**
 ```
 for each state at width W:
   for each column_type C:
     new_width = W + C.width + 0.05  # Include rail
-    new_setback_excess = calculate_setback_excess(new_width)
     new_total_gap = state.total_gap + C.gap
+    new_distinct = count unique brace sizes in (state.columns + [C])
 
-    add (new_setback_excess, new_total_gap, state.columns + [C])
+    add (new_total_gap, new_distinct, state.columns + [C])
     to states[new_width], keeping Pareto-optimal only
 ```
 
-### Step 3: Pareto Front Extraction
+### Step 2.5: Open-End Optimization (Setback Sweep)
+For each solution from the DP:
+```
+best_usable_length = tent_length - 2 × 0.08   # starting point
+min_usable_length = tent_length - 2 × 0.25    # max setback on each side
+max_usable_length = tent_length - 2 × 0.08    # min setback on each side
+
+for usable_length from min_usable_length to max_usable_length (step 0.01m):
+  total_gap = 0
+  for each column in solution:
+    n = floor(usable_length / column.fill_length)
+    if n < 1: skip this usable_length
+    gap = usable_length - n × column.fill_length
+    total_gap += gap
+  if total_gap < best_total_gap:
+    best_total_gap = total_gap
+    best_usable_length = usable_length
+
+Update solution with best_usable_length and best_total_gap
+Open-end setbacks = split (tent_length - best_usable_length) across both sides, each within [0.08, 0.25]
+```
+
+### Step 3: Filter & Pareto Front Extraction
 From all terminal states (valid configurations):
-1. Collect all solutions
-2. Remove dominated solutions (A dominates B if A is better in both objectives)
-3. Select 3 scenarios:
+1. **Filter**: Discard any solution where any setback (rail-end or open-end) is < 0.08m or > 0.25m
+2. Collect remaining solutions
+3. Remove dominated solutions (A dominates B if A is ≤ in ALL of: setback_excess, total_gap, distinct_brace_types, and strictly < in at least one)
+4. Select up to 6 scenarios:
    - **Best Width Fit**: Minimum setback_excess
    - **Minimum Gaps**: Minimum total_gap
-   - **Balanced (Knee Point)**: Maximum distance from the line connecting the two extremes
+   - **Least Brace Kinds**: Fewest distinct brace sizes (ties broken by lowest gap)
+   - **Balanced**: Knee point — closest to origin in normalized (setback_excess, total_gap) space
+   - **Balanced 2**: Next evenly-spaced point along the Pareto front (if exists)
+   - **Balanced 3**: Another evenly-spaced point along the Pareto front (if exists)
 
 ### Step 4: Rail Construction (Secondary)
 After column layout is determined:
 - Calculate required rail length for each rail position
-- Use coin-change variant to combine 1m + 5m + 7.36m rails
+- Use coin-change variant to combine available rail lengths
 - Minimize cuts and waste
 
 ## Edge Cases to Handle
@@ -102,13 +134,13 @@ After column layout is determined:
 ## Validation Checklist
 
 When implementing or debugging:
-- [ ] Setback is never less than 0.15m
+- [ ] Setback on every side is ≥ 0.08m and ≤ 0.25m
 - [ ] Rail thickness (0.05m) counted between ALL columns and at edges
-- [ ] Total width = setback × 2 + (n+1) × rail + Σ(column_widths) ≤ tent_width
+- [ ] Total width = setback_left + setback_right + (n+1) × rail + Σ(column_widths) = tent_width
 - [ ] Gaps are non-negative
 - [ ] At least one brace fits in each column
 - [ ] Pareto front has no dominated solutions
-- [ ] Three distinct scenarios returned (or fewer if Pareto front is smaller)
+- [ ] 3–6 distinct scenarios returned (or fewer if Pareto front is smaller)
 
 ## Code Locations
 

@@ -45,8 +45,12 @@ export interface RailSegment {
 export interface Scenario {
   /** Name of the scenario (e.g., "Best Width Fit", "Minimum Gaps", "Balanced") */
   name: string;
-  /** Actual setback used from tent edges in meters (>= 0.15m) */
+  /** Actual setback used from tent edges in meters (width direction, rail-end) */
   setback: number;
+  /** Open-end setback on the start side (along rail direction) in meters */
+  openEndSetbackStart: number;
+  /** Open-end setback on the end side (along rail direction) in meters */
+  openEndSetbackEnd: number;
   /** Sum of gaps across all columns in square meters */
   totalGap: number;
   /** Array of placed columns */
@@ -56,10 +60,16 @@ export interface Scenario {
    * Each inner array contains the rail segments for that rail
    */
   rails: RailSegment[][];
-  /** Usable width (tent width - 2*setback) in meters */
+  /** Usable width (total column widths + rails) in meters */
   usableWidth: number;
-  /** Usable length (tent length - 2*setback) in meters */
+  /** Optimized usable length along rail direction in meters */
   usableLength: number;
+  /** Actual tent length used for this scenario (rail direction) */
+  tentLength: number;
+  /** Actual tent width used for this scenario (column span direction) */
+  tentWidth: number;
+  /** Number of distinct brace types used */
+  distinctBraceTypes: number;
 }
 
 /**
@@ -68,10 +78,18 @@ export interface Scenario {
 export interface DPSolution {
   /** Excess setback beyond minimum (width not filled) */
   setbackExcess: number;
-  /** Total gap area across all columns */
+  /** Total gap across all columns (linear meters, not area) */
   totalGap: number;
   /** Columns selected in this solution */
   columns: ColumnType[];
   /** Brace usage tracking: key = "LxW" identifier, value = count of braces used */
   braceUsage?: Record<string, number>;
+  /** Number of distinct brace sizes used in this solution */
+  distinctBraceTypes: number;
+  /** Optimized usable length from open-end sweep (meters) */
+  optimizedUsableLength?: number;
+  /** Open-end setback on start side (meters) */
+  openEndSetbackStart?: number;
+  /** Open-end setback on end side (meters) */
+  openEndSetbackEnd?: number;
 }

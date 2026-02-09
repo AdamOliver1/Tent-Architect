@@ -55,22 +55,22 @@ describe('CalculationService', () => {
   });
 
   describe('selectParetoFront', () => {
-    it('should select up to 3 Pareto optimal solutions', () => {
+    it('should select up to 6 Pareto optimal solutions', () => {
       const solutions = [
-        { setbackExcess: 0, totalGap: 0.5, columns: [] },
-        { setbackExcess: 0.1, totalGap: 0.3, columns: [] },
-        { setbackExcess: 0.2, totalGap: 0.2, columns: [] },
-        { setbackExcess: 0.3, totalGap: 0.1, columns: [] },
+        { setbackExcess: 0, totalGap: 0.5, columns: [], distinctBraceTypes: 1 },
+        { setbackExcess: 0.1, totalGap: 0.3, columns: [], distinctBraceTypes: 2 },
+        { setbackExcess: 0.2, totalGap: 0.2, columns: [], distinctBraceTypes: 1 },
+        { setbackExcess: 0.3, totalGap: 0.1, columns: [], distinctBraceTypes: 3 },
       ];
 
       const selected = service.selectParetoFront(solutions);
 
-      expect(selected.length).toBeLessThanOrEqual(3);
+      expect(selected.length).toBeLessThanOrEqual(6);
       expect(selected.length).toBeGreaterThan(0);
     });
 
     it('should handle single solution', () => {
-      const solutions = [{ setbackExcess: 0.1, totalGap: 0.2, columns: [] }];
+      const solutions = [{ setbackExcess: 0.1, totalGap: 0.2, columns: [], distinctBraceTypes: 1 }];
 
       const selected = service.selectParetoFront(solutions);
 
@@ -79,9 +79,9 @@ describe('CalculationService', () => {
 
     it('should filter dominated solutions', () => {
       const solutions = [
-        { setbackExcess: 0.1, totalGap: 0.1, columns: [] }, // Pareto optimal
-        { setbackExcess: 0.2, totalGap: 0.2, columns: [] }, // Dominated
-        { setbackExcess: 0.3, totalGap: 0.05, columns: [] }, // Pareto optimal
+        { setbackExcess: 0.1, totalGap: 0.1, columns: [], distinctBraceTypes: 1 }, // Pareto optimal
+        { setbackExcess: 0.2, totalGap: 0.2, columns: [], distinctBraceTypes: 1 }, // Dominated
+        { setbackExcess: 0.3, totalGap: 0.05, columns: [], distinctBraceTypes: 1 }, // Pareto optimal
       ];
 
       const selected = service.selectParetoFront(solutions);
@@ -137,10 +137,10 @@ describe('CalculationService', () => {
 
       expect(result.scenarios).toBeDefined();
       expect(result.scenarios.length).toBeGreaterThan(0);
-      expect(result.scenarios.length).toBeLessThanOrEqual(3);
+      expect(result.scenarios.length).toBeLessThanOrEqual(6);
 
       for (const scenario of result.scenarios) {
-        expect(scenario.setback).toBeGreaterThanOrEqual(0.15);
+        expect(scenario.setback).toBeGreaterThanOrEqual(0.08);
         expect(scenario.columns.length).toBeGreaterThan(0);
         expect(scenario.rails.length).toBe(2);
       }
@@ -163,13 +163,15 @@ describe('CalculationService', () => {
     });
 
     it('should use custom inventory when provided', () => {
-      // Tent width 8m - setback 0.3m = 7.7m usable width
-      // 2x1 brace: 7 columns of 1m width (normal) = 7m, excess = 0.7m > 0.5m threshold
-      // Need 8 columns = 8m, but 8 > 7.7m, so we need to use tent that allows combinations
-      // Actually: 6m of columns with 0.7m excess (not valid), or
-      // Better: Use larger tent where columns can fit within threshold
+      // Tent width 7.51m: usable = 7.51 - 0.16 = 7.35m
+      // 7 columns of 1m + 8 rails of 0.05 = 7.4m => excess = -0.05 (too wide, skip)
+      // 6 columns of 1m + 7 rails of 0.05 = 6.35m => excess = 1.0m (too large)
+      // Actually with 2x1 braces: column can be 1m (normal) or 2m (rotated)
+      // 3 columns of 2m + 4 rails of 0.05 = 6.2m => excess = 7.35 - 6.2 = 1.15m (too large)
+      // Use a tent that fits 7 x 1m columns: 7 + 8*0.05 = 7.4m + 0.16 = 7.56m
+      // excess = 7.56 - 0.16 - 7.4 = 0m (perfect fit)
       const result = service.calculate({
-        tent: { length: 10, width: 8 },
+        tent: { length: 10, width: 7.56 },
         inventory: {
           braces: [{ length: 2, width: 1, quantity: 100 }],
           rails: [{ length: 5, quantity: 10 }],
@@ -194,7 +196,7 @@ describe('CalculationService', () => {
       });
 
       for (const scenario of result.scenarios) {
-        expect(scenario.setback).toBeGreaterThanOrEqual(0.15);
+        expect(scenario.setback).toBeGreaterThanOrEqual(0.08);
       }
     });
 
@@ -215,9 +217,9 @@ describe('CalculationService', () => {
 
   describe('edge cases', () => {
     it('should handle tent where braces exactly fit width', () => {
-      // 2 x 1.22m braces + 3 x 0.05m rails + 2 x 0.15m setback = 2.89m total
+      // 2 x 1.22m braces + 3 x 0.05m rails + 2 x 0.08m setback = 2.75m total
       const result = service.calculate({
-        tent: { length: 10, width: 2.89 },
+        tent: { length: 10, width: 2.75 },
         inventory: {
           braces: [{ length: 2.45, width: 1.22, quantity: 100 }],
           rails: [{ length: 5, quantity: 10 }],
