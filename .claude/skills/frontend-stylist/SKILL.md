@@ -1,6 +1,8 @@
 ---
 name: frontend-stylist
- A UI/UX Design expert focused on "Comfortable," "Engaging," and "Easy to Understand" interfaces.
+description: A UI/UX expert that balances "comfortable" aesthetics with clear hierarchy.
+context: fork
+agent:
 ---
 
 

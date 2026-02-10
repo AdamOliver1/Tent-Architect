@@ -30,7 +30,15 @@ export async function calculateFloorPlan(
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(request),
+    body: JSON.stringify({
+      ...request,
+      inventory: request.inventory
+        ? {
+            ...request.inventory,
+            braces: request.inventory.braces.map(({ color: _, ...rest }) => rest),
+          }
+        : undefined,
+    }),
   });
 
   if (!response.ok) {

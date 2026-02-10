@@ -1,13 +1,13 @@
 import { useMemo, useState, useEffect, useCallback, useRef } from 'react';
-import type { Scenario, Column, TentDimensions } from '../../types';
+import type { Scenario, Column } from '../../types';
 import { ZoomControls } from '../ZoomControls';
 import styles from './FloorPlanCanvas.module.scss';
 
 interface FloorPlanCanvasProps {
   scenario: Scenario;
-  tent: TentDimensions;
   onColumnClick?: (column: Column, index: number, rect: DOMRect) => void;
   selectedColumnIndex?: number | null;
+  braceColorMap?: Record<string, string>;
 }
 
 const RAIL_THICKNESS = 0.05; // 5cm
@@ -16,8 +16,9 @@ const RAIL_THICKNESS = 0.05; // 5cm
 const COLORS = {
   background: '#EDEBE8',
   tentBorder: '#8A9490',
-  setbackLine: '#B5B0A8',
-  setbackFill: 'rgba(90, 122, 108, 0.04)',
+  setbackLine: '#A0877A',
+  setbackFill: 'rgba(196, 149, 106, 0.15)',
+  setbackStripe: 'rgba(196, 149, 106, 0.08)',
   rail: '#4A5553',
   brace: '#5A7A6C',
   braceHover: '#4A6A5C',
@@ -48,15 +49,31 @@ function formatDim(n: number): string {
   return n.toFixed(3).replace(/\.?0+$/, '');
 }
 
+function lightenColor(hex: string, amount: number): string {
+  const num = parseInt(hex.replace('#', ''), 16);
+  const r = Math.min(255, ((num >> 16) & 0xff) + amount);
+  const g = Math.min(255, ((num >> 8) & 0xff) + amount);
+  const b = Math.min(255, (num & 0xff) + amount);
+  return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`;
+}
+
+function darkenColor(hex: string, amount: number): string {
+  const num = parseInt(hex.replace('#', ''), 16);
+  const r = Math.max(0, ((num >> 16) & 0xff) - amount);
+  const g = Math.max(0, ((num >> 8) & 0xff) - amount);
+  const b = Math.max(0, (num & 0xff) - amount);
+  return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`;
+}
+
 const MIN_ZOOM = 0.25;
 const MAX_ZOOM = 4;
 const ZOOM_STEP = 0.25;
 
 export function FloorPlanCanvas({
   scenario,
-  tent,
   onColumnClick,
   selectedColumnIndex,
+  braceColorMap = {},
 }: FloorPlanCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -71,6 +88,12 @@ export function FloorPlanCanvas({
   const [isPanning, setIsPanning] = useState(false);
   const panStart = useRef({ x: 0, y: 0 });
   const panOffsetStart = useRef({ x: 0, y: 0 });
+
+  // Asymmetric setbacks
+  const setbackLeft = scenario.setback; // rail-end
+  const setbackRight = scenario.setback; // rail-end
+  const setbackTop = scenario.openEndSetbackStart; // open-end start
+  const setbackBottom = scenario.openEndSetbackEnd; // open-end end
 
   // Trigger re-animation when scenario changes
   useEffect(() => {
@@ -95,24 +118,24 @@ export function FloorPlanCanvas({
     return () => ro.disconnect();
   }, []);
 
-  // Layout calculation
+  // Layout calculation - use scenario's actual dimensions
   const layout = useMemo(() => {
     const padding = 80;
     const svgWidth = containerWidth;
     const svgHeight = Math.max(500, containerHeight);
     const availableWidth = svgWidth - 2 * padding;
     const availableHeight = svgHeight - 2 * padding;
-    const scaleX = availableWidth / tent.width;
-    const scaleY = availableHeight / tent.length;
+    const scaleX = availableWidth / scenario.tentWidth;
+    const scaleY = availableHeight / scenario.tentLength;
     const scale = Math.min(scaleX, scaleY);
 
-    const tentDisplayWidth = tent.width * scale;
-    const tentDisplayHeight = tent.length * scale;
+    const tentDisplayWidth = scenario.tentWidth * scale;
+    const tentDisplayHeight = scenario.tentLength * scale;
     const offsetX = (svgWidth - tentDisplayWidth) / 2;
     const offsetY = (svgHeight - tentDisplayHeight) / 2;
 
     return { padding, svgWidth, svgHeight, scale, offsetX, offsetY, tentDisplayWidth, tentDisplayHeight };
-  }, [containerWidth, containerHeight, tent]);
+  }, [containerWidth, containerHeight, scenario.tentWidth, scenario.tentLength]);
 
   const toX = useCallback((x: number) => layout.offsetX + x * layout.scale, [layout]);
   const toY = useCallback((y: number) => layout.offsetY + y * layout.scale, [layout]);
@@ -151,7 +174,6 @@ export function FloorPlanCanvas({
 
   // Pan handlers
   const handlePanStart = useCallback((e: React.MouseEvent) => {
-    // Only pan with middle button or when holding space
     if (e.button === 1 || (e.button === 0 && e.altKey)) {
       e.preventDefault();
       setIsPanning(true);
@@ -193,6 +215,15 @@ export function FloorPlanCanvas({
     [handleColumnClick]
   );
 
+  // Get brace color for a column
+  const getBraceColor = useCallback(
+    (col: Column) => {
+      const key = `${col.columnType.braceLength}×${col.columnType.braceWidth}`;
+      return braceColorMap[key] || COLORS.brace;
+    },
+    [braceColorMap]
+  );
+
   // Brace label visibility
   const showBraceLabels = useMemo(() => {
     if (scenario.columns.length === 0) return false;
@@ -210,10 +241,27 @@ export function FloorPlanCanvas({
     });
   }, [scenario.columns, toS, zoom]);
 
+  // Build legend entries from distinct brace types in scenario
+  const legendEntries = useMemo(() => {
+    const seen = new Map<string, { length: number; width: number; color: string }>();
+    for (const col of scenario.columns) {
+      const ct = col.columnType;
+      const key = `${ct.braceLength}×${ct.braceWidth}`;
+      if (!seen.has(key)) {
+        seen.set(key, {
+          length: ct.braceLength,
+          width: ct.braceWidth,
+          color: braceColorMap[key] || COLORS.brace,
+        });
+      }
+    }
+    return Array.from(seen.values());
+  }, [scenario.columns, braceColorMap]);
+
   // Mini-map dimensions
   const miniMapWidth = 140;
-  const miniMapHeight = Math.round(miniMapWidth * (tent.length / tent.width));
-  const miniMapScale = (miniMapWidth - 16) / tent.width;
+  const miniMapHeight = Math.round(miniMapWidth * (scenario.tentLength / scenario.tentWidth));
+  const miniMapScale = (miniMapWidth - 16) / scenario.tentWidth;
   const miniMapPadding = 8;
 
   // Viewport indicator on mini-map
@@ -221,6 +269,117 @@ export function FloorPlanCanvas({
   const viewportY = miniMapPadding - (panOffset.y / layout.scale / zoom) * miniMapScale;
   const viewportW = (layout.svgWidth / layout.scale / zoom) * miniMapScale;
   const viewportH = (layout.svgHeight / layout.scale / zoom) * miniMapScale;
+
+  // Helper: render a setback dimension line OUTSIDE the tent boundary with label
+  // Lines are drawn from tent edge to setback boundary, but offset into the margin
+  // so braces/rails never cover them.
+  const renderSetbackDim = (
+    side: 'top' | 'bottom' | 'left' | 'right',
+    value: number,
+    delay: number
+  ) => {
+    if (value <= 0.001) return null;
+
+    const LABEL_W = 72;
+    const LABEL_H = 24;
+    const LINE_COLOR = '#A0877A';
+    const LABEL_BG = '#FFF8F0';
+    const LABEL_BORDER = '#C4956A';
+    const OUTSIDE_OFFSET = 14; // px outside the tent edge
+
+    if (side === 'top') {
+      // Vertical line outside left edge of tent, spanning from top of tent to setback
+      const lineX = toX(0) - OUTSIDE_OFFSET;
+      const y1 = toY(0);
+      const y2 = toY(value);
+      const midY = (y1 + y2) / 2;
+      return (
+        <g key={side} className={styles.animFadeIn} style={{ animationDelay: `${delay}ms` }}>
+          {/* Tick marks connecting to tent edge */}
+          <line x1={lineX} y1={y1} x2={toX(0)} y2={y1} stroke={LINE_COLOR} strokeWidth={1} />
+          <line x1={lineX} y1={y2} x2={toX(0)} y2={y2} stroke={LINE_COLOR} strokeWidth={1} />
+          {/* Vertical dimension line */}
+          <line x1={lineX} y1={y1 + 4} x2={lineX} y2={y2 - 4}
+            stroke={LINE_COLOR} strokeWidth={2}
+            markerStart="url(#arrowUp)" markerEnd="url(#arrowDown)" />
+          {/* Label */}
+          <rect x={lineX - LABEL_W - 4} y={midY - LABEL_H / 2} width={LABEL_W} height={LABEL_H} rx={6}
+            fill={LABEL_BG} stroke={LABEL_BORDER} strokeWidth={1} />
+          <text x={lineX - LABEL_W / 2 - 4} y={midY + 5} textAnchor="middle" className={styles.setbackLabel}>
+            {formatDim(value)}m
+          </text>
+        </g>
+      );
+    }
+
+    if (side === 'bottom') {
+      // Vertical line outside right edge of tent
+      const lineX = toX(scenario.tentWidth) + OUTSIDE_OFFSET;
+      const y1 = toY(scenario.tentLength - value);
+      const y2 = toY(scenario.tentLength);
+      const midY = (y1 + y2) / 2;
+      return (
+        <g key={side} className={styles.animFadeIn} style={{ animationDelay: `${delay}ms` }}>
+          <line x1={toX(scenario.tentWidth)} y1={y1} x2={lineX} y2={y1} stroke={LINE_COLOR} strokeWidth={1} />
+          <line x1={toX(scenario.tentWidth)} y1={y2} x2={lineX} y2={y2} stroke={LINE_COLOR} strokeWidth={1} />
+          <line x1={lineX} y1={y1 + 4} x2={lineX} y2={y2 - 4}
+            stroke={LINE_COLOR} strokeWidth={2}
+            markerStart="url(#arrowUp)" markerEnd="url(#arrowDown)" />
+          <rect x={lineX + 4} y={midY - LABEL_H / 2} width={LABEL_W} height={LABEL_H} rx={6}
+            fill={LABEL_BG} stroke={LABEL_BORDER} strokeWidth={1} />
+          <text x={lineX + LABEL_W / 2 + 4} y={midY + 5} textAnchor="middle" className={styles.setbackLabel}>
+            {formatDim(value)}m
+          </text>
+        </g>
+      );
+    }
+
+    if (side === 'left') {
+      // Horizontal line above the tent
+      const lineY = toY(0) - OUTSIDE_OFFSET;
+      const x1 = toX(0);
+      const x2 = toX(value);
+      const midX = (x1 + x2) / 2;
+      return (
+        <g key={side} className={styles.animFadeIn} style={{ animationDelay: `${delay}ms` }}>
+          <line x1={x1} y1={toY(0)} x2={x1} y2={lineY} stroke={LINE_COLOR} strokeWidth={1} />
+          <line x1={x2} y1={toY(0)} x2={x2} y2={lineY} stroke={LINE_COLOR} strokeWidth={1} />
+          <line x1={x1 + 4} y1={lineY} x2={x2 - 4} y2={lineY}
+            stroke={LINE_COLOR} strokeWidth={2}
+            markerStart="url(#arrowLeft)" markerEnd="url(#arrowRight)" />
+          <rect x={midX - LABEL_W / 2} y={lineY - LABEL_H - 4} width={LABEL_W} height={LABEL_H} rx={6}
+            fill={LABEL_BG} stroke={LABEL_BORDER} strokeWidth={1} />
+          <text x={midX} y={lineY - LABEL_H / 2 + 2} textAnchor="middle" className={styles.setbackLabel}>
+            {formatDim(value)}m
+          </text>
+        </g>
+      );
+    }
+
+    if (side === 'right') {
+      // Horizontal line below the tent
+      const lineY = toY(scenario.tentLength) + OUTSIDE_OFFSET;
+      const x1 = toX(scenario.tentWidth - value);
+      const x2 = toX(scenario.tentWidth);
+      const midX = (x1 + x2) / 2;
+      return (
+        <g key={side} className={styles.animFadeIn} style={{ animationDelay: `${delay}ms` }}>
+          <line x1={x1} y1={toY(scenario.tentLength)} x2={x1} y2={lineY} stroke={LINE_COLOR} strokeWidth={1} />
+          <line x1={x2} y1={toY(scenario.tentLength)} x2={x2} y2={lineY} stroke={LINE_COLOR} strokeWidth={1} />
+          <line x1={x1 + 4} y1={lineY} x2={x2 - 4} y2={lineY}
+            stroke={LINE_COLOR} strokeWidth={2}
+            markerStart="url(#arrowLeft)" markerEnd="url(#arrowRight)" />
+          <rect x={midX - LABEL_W / 2} y={lineY + 4} width={LABEL_W} height={LABEL_H} rx={6}
+            fill={LABEL_BG} stroke={LABEL_BORDER} strokeWidth={1} />
+          <text x={midX} y={lineY + LABEL_H / 2 + 10} textAnchor="middle" className={styles.setbackLabel}>
+            {formatDim(value)}m
+          </text>
+        </g>
+      );
+    }
+
+    return null;
+  };
 
   return (
     <div
@@ -247,7 +406,7 @@ export function FloorPlanCanvas({
           transformOrigin: 'center center',
         }}
         role="img"
-        aria-label={`Floor plan for ${tent.length}m by ${tent.width}m tent, ${scenario.name}`}
+        aria-label={`Floor plan for ${scenario.tentLength}m by ${scenario.tentWidth}m tent, ${scenario.name}`}
       >
         {/* Background */}
         <rect width={layout.svgWidth} height={layout.svgHeight} fill={COLORS.background} />
@@ -264,8 +423,8 @@ export function FloorPlanCanvas({
         <rect
           x={toX(0)}
           y={toY(0)}
-          width={toS(tent.width)}
-          height={toS(tent.length)}
+          width={toS(scenario.tentWidth)}
+          height={toS(scenario.tentLength)}
           fill="rgba(255,255,255,0.3)"
           stroke={COLORS.tentBorder}
           strokeWidth={2}
@@ -274,88 +433,66 @@ export function FloorPlanCanvas({
           style={{ animationDelay: `${ANIM.tentDelay}ms` }}
         />
 
-        {/* ── Setback area ── */}
-        <rect
-          x={toX(scenario.setback)}
-          y={toY(scenario.setback)}
-          width={toS(tent.width - 2 * scenario.setback)}
-          height={toS(tent.length - 2 * scenario.setback)}
-          fill={COLORS.setbackFill}
-          stroke={COLORS.setbackLine}
-          strokeWidth={1}
-          strokeDasharray="8 4"
-          rx={2}
-          className={styles.animFadeIn}
-          style={{ animationDelay: `${ANIM.setbackDelay}ms` }}
-        />
+        {/* ── Setback hatching pattern ── */}
+        <defs>
+          <pattern id="setbackHatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <line x1="0" y1="0" x2="0" y2="8" stroke={COLORS.setbackLine} strokeWidth="1" opacity="0.35" />
+          </pattern>
+        </defs>
 
-        {/* ── Setback dimension lines ── */}
-        {scenario.setback > 0.15 && (
-          <g
-            className={styles.animFadeIn}
-            style={{ animationDelay: `${ANIM.setbackDelay + 100}ms` }}
-          >
-            {/* Top setback */}
-            <line
-              x1={toX(tent.width / 2) - 20}
-              y1={toY(0)}
-              x2={toX(tent.width / 2) - 20}
-              y2={toY(scenario.setback)}
-              stroke={COLORS.dimLine}
-              strokeWidth={1}
-              markerStart="url(#arrowUp)"
-              markerEnd="url(#arrowDown)"
-            />
-            <rect
-              x={toX(tent.width / 2) - 50}
-              y={toY(scenario.setback / 2) - 9}
-              width={60}
-              height={18}
-              rx={6}
-              fill={COLORS.labelBg}
-              stroke={COLORS.dimLine}
-              strokeWidth={0.5}
-            />
-            <text
-              x={toX(tent.width / 2) - 20}
-              y={toY(scenario.setback / 2) + 4}
-              textAnchor="middle"
-              className={styles.dimLabel}
-            >
-              {formatDim(scenario.setback)}m
-            </text>
+        {/* ── Setback strips (4 sides, individually visible) ── */}
+        <g className={styles.animFadeIn} style={{ animationDelay: `${ANIM.setbackDelay}ms` }}>
+          {/* Top strip (open-end start) */}
+          {setbackTop > 0.001 && (
+            <g>
+              <rect x={toX(0)} y={toY(0)} width={toS(scenario.tentWidth)} height={toS(setbackTop)}
+                fill={COLORS.setbackFill} />
+              <rect x={toX(0)} y={toY(0)} width={toS(scenario.tentWidth)} height={toS(setbackTop)}
+                fill="url(#setbackHatch)" />
+            </g>
+          )}
+          {/* Bottom strip (open-end end) */}
+          {setbackBottom > 0.001 && (
+            <g>
+              <rect x={toX(0)} y={toY(scenario.tentLength - setbackBottom)}
+                width={toS(scenario.tentWidth)} height={toS(setbackBottom)}
+                fill={COLORS.setbackFill} />
+              <rect x={toX(0)} y={toY(scenario.tentLength - setbackBottom)}
+                width={toS(scenario.tentWidth)} height={toS(setbackBottom)}
+                fill="url(#setbackHatch)" />
+            </g>
+          )}
+          {/* Left strip (rail-end) */}
+          {setbackLeft > 0.001 && (
+            <g>
+              <rect x={toX(0)} y={toY(setbackTop)}
+                width={toS(setbackLeft)} height={toS(scenario.tentLength - setbackTop - setbackBottom)}
+                fill={COLORS.setbackFill} />
+              <rect x={toX(0)} y={toY(setbackTop)}
+                width={toS(setbackLeft)} height={toS(scenario.tentLength - setbackTop - setbackBottom)}
+                fill="url(#setbackHatch)" />
+            </g>
+          )}
+          {/* Right strip (rail-end) */}
+          {setbackRight > 0.001 && (
+            <g>
+              <rect x={toX(scenario.tentWidth - setbackRight)} y={toY(setbackTop)}
+                width={toS(setbackRight)} height={toS(scenario.tentLength - setbackTop - setbackBottom)}
+                fill={COLORS.setbackFill} />
+              <rect x={toX(scenario.tentWidth - setbackRight)} y={toY(setbackTop)}
+                width={toS(setbackRight)} height={toS(scenario.tentLength - setbackTop - setbackBottom)}
+                fill="url(#setbackHatch)" />
+            </g>
+          )}
 
-            {/* Left setback */}
-            <line
-              x1={toX(0)}
-              y1={toY(tent.length / 2) - 20}
-              x2={toX(scenario.setback)}
-              y2={toY(tent.length / 2) - 20}
-              stroke={COLORS.dimLine}
-              strokeWidth={1}
-              markerStart="url(#arrowLeft)"
-              markerEnd="url(#arrowRight)"
-            />
-            <rect
-              x={toX(scenario.setback / 2) - 30}
-              y={toY(tent.length / 2) - 29}
-              width={60}
-              height={18}
-              rx={6}
-              fill={COLORS.labelBg}
-              stroke={COLORS.dimLine}
-              strokeWidth={0.5}
-            />
-            <text
-              x={toX(scenario.setback / 2)}
-              y={toY(tent.length / 2) - 16}
-              textAnchor="middle"
-              className={styles.dimLabel}
-            >
-              {formatDim(scenario.setback)}m
-            </text>
-          </g>
-        )}
+          {/* Inner usable border */}
+          <rect
+            x={toX(setbackLeft)} y={toY(setbackTop)}
+            width={toS(scenario.tentWidth - setbackLeft - setbackRight)}
+            height={toS(scenario.tentLength - setbackTop - setbackBottom)}
+            fill="none" stroke={COLORS.setbackLine} strokeWidth={1.5} strokeDasharray="6 3" rx={2}
+          />
+        </g>
 
         {/* ── Rails ── */}
         <g
@@ -363,18 +500,18 @@ export function FloorPlanCanvas({
           style={{ animationDelay: `${ANIM.railDelay}ms` }}
         >
           <rect
-            x={toX(scenario.setback)}
-            y={toY(scenario.setback)}
+            x={toX(setbackLeft)}
+            y={toY(setbackTop)}
             width={toS(RAIL_THICKNESS)}
-            height={toS(scenario.usableLength)}
+            height={toS(scenario.tentLength - setbackTop - setbackBottom)}
             fill={COLORS.rail}
             rx={1}
           />
           <rect
-            x={toX(tent.width - scenario.setback - RAIL_THICKNESS)}
-            y={toY(scenario.setback)}
+            x={toX(scenario.tentWidth - setbackRight - RAIL_THICKNESS)}
+            y={toY(setbackTop)}
             width={toS(RAIL_THICKNESS)}
-            height={toS(scenario.usableLength)}
+            height={toS(scenario.tentLength - setbackTop - setbackBottom)}
             fill={COLORS.rail}
             rx={1}
           />
@@ -386,6 +523,9 @@ export function FloorPlanCanvas({
           const colDelay = ANIM.columnBaseDelay + colIdx * ANIM.columnStagger;
           const isHovered = hoveredColumn === colIdx;
           const isSelected = selectedColumnIndex === colIdx;
+          const braceColor = getBraceColor(column);
+          const braceHoverColor = lightenColor(braceColor, 16);
+          const braceBorderColor = darkenColor(braceColor, 16);
 
           return (
             <g
@@ -402,7 +542,7 @@ export function FloorPlanCanvas({
             >
               {Array.from({ length: columnType.braceCount }, (_, i) => {
                 const bx = toX(position);
-                const by = toY(scenario.setback + i * columnType.fillLength);
+                const by = toY(setbackTop + i * columnType.fillLength);
                 const bw = toS(columnType.columnWidth);
                 const bh = toS(columnType.fillLength);
                 return (
@@ -412,8 +552,8 @@ export function FloorPlanCanvas({
                       y={by}
                       width={bw}
                       height={bh}
-                      fill={isHovered || isSelected ? COLORS.braceHover : COLORS.brace}
-                      stroke={COLORS.braceBorder}
+                      fill={isHovered || isSelected ? braceHoverColor : braceColor}
+                      stroke={braceBorderColor}
                       strokeWidth={1}
                       rx={3}
                       className={styles.braceRect}
@@ -436,7 +576,7 @@ export function FloorPlanCanvas({
               {columnType.gap > 0.001 && (() => {
                 const gx = toX(position);
                 const gy = toY(
-                  scenario.setback + columnType.braceCount * columnType.fillLength
+                  setbackTop + columnType.braceCount * columnType.fillLength
                 );
                 const gw = toS(columnType.columnWidth);
                 const gh = toS(columnType.gap);
@@ -472,6 +612,12 @@ export function FloorPlanCanvas({
           );
         })}
 
+        {/* ── Setback dimension lines (rendered on top of columns) ── */}
+        {renderSetbackDim('top', setbackTop, ANIM.setbackDelay + 100)}
+        {renderSetbackDim('bottom', setbackBottom, ANIM.setbackDelay + 100)}
+        {renderSetbackDim('left', setbackLeft, ANIM.setbackDelay + 100)}
+        {renderSetbackDim('right', setbackRight, ANIM.setbackDelay + 100)}
+
         {/* ── Overall dimension labels ── */}
         <g
           className={styles.animFadeIn}
@@ -482,17 +628,17 @@ export function FloorPlanCanvas({
           {/* Width (bottom) */}
           <line
             x1={toX(0)}
-            y1={toY(tent.length) + 24}
-            x2={toX(tent.width)}
-            y2={toY(tent.length) + 24}
+            y1={toY(scenario.tentLength) + 24}
+            x2={toX(scenario.tentWidth)}
+            y2={toY(scenario.tentLength) + 24}
             stroke={COLORS.dimLine}
             strokeWidth={1}
             markerStart="url(#arrowLeft)"
             markerEnd="url(#arrowRight)"
           />
           <rect
-            x={toX(tent.width / 2) - 30}
-            y={toY(tent.length) + 15}
+            x={toX(scenario.tentWidth / 2) - 30}
+            y={toY(scenario.tentLength) + 15}
             width={60}
             height={20}
             rx={6}
@@ -501,28 +647,28 @@ export function FloorPlanCanvas({
             strokeWidth={0.5}
           />
           <text
-            x={toX(tent.width / 2)}
-            y={toY(tent.length) + 29}
+            x={toX(scenario.tentWidth / 2)}
+            y={toY(scenario.tentLength) + 29}
             textAnchor="middle"
             className={styles.measureLabel}
           >
-            {formatDim(tent.width)}m
+            {formatDim(scenario.tentWidth)}m
           </text>
 
           {/* Length (right) */}
           <line
-            x1={toX(tent.width) + 24}
+            x1={toX(scenario.tentWidth) + 24}
             y1={toY(0)}
-            x2={toX(tent.width) + 24}
-            y2={toY(tent.length)}
+            x2={toX(scenario.tentWidth) + 24}
+            y2={toY(scenario.tentLength)}
             stroke={COLORS.dimLine}
             strokeWidth={1}
             markerStart="url(#arrowUp)"
             markerEnd="url(#arrowDown)"
           />
           <rect
-            x={toX(tent.width) + 14}
-            y={toY(tent.length / 2) - 10}
+            x={toX(scenario.tentWidth) + 14}
+            y={toY(scenario.tentLength / 2) - 10}
             width={60}
             height={20}
             rx={6}
@@ -531,12 +677,12 @@ export function FloorPlanCanvas({
             strokeWidth={0.5}
           />
           <text
-            x={toX(tent.width) + 44}
-            y={toY(tent.length / 2) + 4}
+            x={toX(scenario.tentWidth) + 44}
+            y={toY(scenario.tentLength / 2) + 4}
             textAnchor="middle"
             className={styles.measureLabel}
           >
-            {formatDim(tent.length)}m
+            {formatDim(scenario.tentLength)}m
           </text>
         </g>
 
@@ -557,12 +703,14 @@ export function FloorPlanCanvas({
         </defs>
       </svg>
 
-      {/* ── Legend (bottom-left, floating) ── */}
+      {/* ── Legend (bottom-left, floating) — brace types with colors ── */}
       <div className={styles.legend}>
-        <div className={styles.legendItem}>
-          <span className={styles.legendSwatch} style={{ backgroundColor: COLORS.brace }} />
-          <span>Braces</span>
-        </div>
+        {legendEntries.map((entry) => (
+          <div key={`${entry.length}×${entry.width}`} className={styles.legendItem}>
+            <span className={styles.legendSwatch} style={{ backgroundColor: entry.color }} />
+            <span>{formatDim(entry.length)}×{formatDim(entry.width)}m</span>
+          </div>
+        ))}
         <div className={styles.legendItem}>
           <span className={styles.legendSwatch} style={{ backgroundColor: COLORS.gap, border: `1px solid ${COLORS.gapBorder}` }} />
           <span>Gaps</span>
@@ -598,26 +746,29 @@ export function FloorPlanCanvas({
             <rect
               x={miniMapPadding}
               y={miniMapPadding}
-              width={tent.width * miniMapScale}
-              height={tent.length * miniMapScale}
+              width={scenario.tentWidth * miniMapScale}
+              height={scenario.tentLength * miniMapScale}
               fill="none"
               stroke={COLORS.tentBorder}
               strokeWidth={1}
               rx={1}
             />
             {/* Columns */}
-            {scenario.columns.map((col, i) => (
-              <rect
-                key={i}
-                x={miniMapPadding + col.position * miniMapScale}
-                y={miniMapPadding + scenario.setback * miniMapScale}
-                width={col.columnType.columnWidth * miniMapScale}
-                height={scenario.usableLength * miniMapScale}
-                fill={COLORS.brace}
-                opacity={0.5}
-                rx={0.5}
-              />
-            ))}
+            {scenario.columns.map((col, i) => {
+              const colColor = braceColorMap[`${col.columnType.braceLength}×${col.columnType.braceWidth}`] || COLORS.brace;
+              return (
+                <rect
+                  key={i}
+                  x={miniMapPadding + col.position * miniMapScale}
+                  y={miniMapPadding + setbackTop * miniMapScale}
+                  width={col.columnType.columnWidth * miniMapScale}
+                  height={(scenario.tentLength - setbackTop - setbackBottom) * miniMapScale}
+                  fill={colColor}
+                  opacity={0.5}
+                  rx={0.5}
+                />
+              );
+            })}
             {/* Viewport rectangle */}
             <rect
               x={Math.max(0, viewportX)}

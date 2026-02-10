@@ -89,25 +89,33 @@
   flex-shrink: 0;
 }
 
-// ── Usable area ──
-.usable {
+// ── Actions row ──
+.actions {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   padding-top: $spacing-sm;
   border-top: 1px solid $border-light;
 }
 
-.usableLabel {
+.inventoryBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-size: $font-xs;
-  color: $text-muted;
   font-weight: 500;
-}
+  color: $primary-color;
+  cursor: pointer;
+  padding: $spacing-2xs $spacing-sm;
+  border-radius: $radius-sm;
+  transition: all $transition-fast;
 
-.usableValue {
-  font-size: $font-sm;
-  font-weight: 600;
-  color: $text-secondary;
-  font-family: $font-mono;
-  letter-spacing: 0;
+  &:hover {
+    background: $primary-muted;
+    color: $primary-hover;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $primary-color;
+    outline-offset: 2px;
+  }
 }

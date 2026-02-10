@@ -14,7 +14,7 @@ Monorepo with two apps:
 - **Brace**: Floor panel. Sizes: 2.45×1.22m, 2×1m, 0.5×2m, 0.6×2.44m. Can rotate.
 - **Column**: Space between two rails, filled with braces end-to-end.
 - **Bin**: Filler piece covering gaps inside columns.
-- **Setback**: Min 0.15m from tent edges.
+- **Setback**: Min 0.08m from tent edges. Asymmetric: rail-end setback (left/right, symmetric) and open-end setbacks (start/end, can differ).
 
 ## Axis Rules
 - **Rail Ends** (parallel to rails): Symmetric, NO bins. Excess → increase setback.
@@ -32,7 +32,7 @@ DP-based optimization finding column combinations that minimize:
 1. Setback increase (Rail End waste)
 2. Total gap/bin area (Open End waste)
 
-Outputs 3 scenarios on Pareto front.
+Outputs up to 6 scenarios on Pareto front.
 
 
 ## 🔄 Post-Edit Protocol (The Hook)

@@ -145,6 +145,21 @@ export function InventoryEditor({
                         className={styles.qtyInput}
                       />
                     </div>
+                    <div className={styles.fieldGroup}>
+                      <label className={styles.microLabel}>{t('inventory.color')}</label>
+                      <input
+                        type="color"
+                        value={brace.color || '#5A7A6C'}
+                        onChange={(e) => {
+                          const newBraces = [...inventory.braces];
+                          newBraces[index] = { ...newBraces[index], color: e.target.value };
+                          onChange({ ...inventory, braces: newBraces });
+                        }}
+                        disabled={disabled}
+                        className={styles.colorInput}
+                        title={t('inventory.color')}
+                      />
+                    </div>
                   </div>
                   <button
                     className={styles.removeBtn}

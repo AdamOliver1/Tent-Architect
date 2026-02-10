@@ -31,15 +31,15 @@ const defaultTent: TentDimensions = {
 
 const defaultInventory: Inventory = {
   braces: [
-    { length: 2.45, width: 1.22, quantity: 100 },
-    { length: 2.0, width: 1.0, quantity: 100 },
-    { length: 0.5, width: 2.0, quantity: 100 },
-    { length: 0.6, width: 2.44, quantity: 100 },
+    { length: 2.45, width: 1.22, quantity: 1000, color: '#2D5A4A' },
+    { length: 2.0, width: 1.0, quantity: 1000, color: '#4A3272' },
+    { length: 0.5, width: 2.0, quantity: 1000, color: '#8B4513' },
+    { length: 0.6, width: 2.44, quantity: 1000, color: '#1B4F6B' },
   ],
   rails: [
-    { length: 1.0, quantity: 100 },
-    { length: 5.0, quantity: 100 },
-    { length: 7.36, quantity: 100 },
+    { length: 1.0, quantity: 1000 },
+    { length: 5.0, quantity: 1000 },
+    { length: 7.36, quantity: 1000 },
   ],
 };
 

@@ -30,8 +30,12 @@ src/
 │   │   ├── FloorPlanCanvas.tsx     # Canvas visualization
 │   │   └── FloorPlanCanvas.module.scss
 │   ├── ScenarioCard/
-│   │   ├── ScenarioCard.tsx        # Individual scenario display
+│   │   ├── ScenarioCard.tsx        # Individual scenario display (setback + braces + inventory btn)
 │   │   └── ScenarioCard.module.scss
+│   ├── ScenarioInventoryModal/
+│   │   ├── ScenarioInventoryModal.tsx  # Inventory detail modal per scenario
+│   │   ├── ScenarioInventoryModal.module.scss
+│   │   └── index.ts
 │   └── Button/
 │       ├── Button.tsx              # Reusable button component
 │       └── Button.module.scss
@@ -63,16 +67,20 @@ src/
 - **Action**: On submit, call API and navigate to Results page
 
 ### Results Page
-- **Purpose**: Display 3 calculated scenarios
+- **Purpose**: Display up to 6 calculated scenarios
 - **Components**:
-  - `ScenarioCard` (×3) — Show each scenario's metrics
-  - `FloorPlanCanvas` — Visualize selected scenario
+  - `ScenarioCard` (×N) — Show setback + brace count + inventory button
+  - `ScenarioInventoryModal` — Full inventory breakdown per scenario
+  - `FloorPlanCanvas` — Visualize selected scenario with brace colors
   - `Button` — "Back to Dashboard" button
 - **State**: Results from `CalculationContext`
 - **Features**:
   - Compare scenarios side-by-side
   - Click scenario to view detailed visualization
-  - Show setback, gaps, material usage
+  - Brace colors from inventory color picker shown on canvas
+  - Asymmetric setback visualization (rail-end vs open-end per side)
+  - Legend shows brace type colors + sizes
+  - Inventory modal shows full breakdown: brace types, setbacks, gaps
 
 ## Routing
 Use React Router v6, wrapped in CalculationProvider:
@@ -110,11 +118,14 @@ Use React Router v6, wrapped in CalculationProvider:
 - **Grid/Flexbox** — No UI library needed for simple layouts
 
 ## Visualization
-- Canvas API for floor plan rendering
-- Draw rails (dark gray), braces (blue), bins (light yellow)
+- SVG-based floor plan rendering (FloorPlanCanvas)
+- Draw rails (dark gray), braces (colored per inventory), gaps (light yellow)
+- Braces colored by inventory color picker (`Brace.color` optional field)
+- Asymmetric setbacks: `setback` for rail-ends (left/right), `openEndSetbackStart`/`openEndSetbackEnd` for open-ends (top/bottom)
+- Setback dimension labels per side (threshold > 0.10m), positioned for visibility on large tents
 - Show measurements and labels
 - Support zoom/pan for large tents
-- Legend for colors and symbols
+- Legend shows each brace type (size + color swatch), gaps, rails
 
 ## Best Practices
 - **Validation**: Validate inputs before API call (min dimensions, positive numbers)

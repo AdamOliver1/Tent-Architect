@@ -1,10 +1,11 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useCalculation } from '../../context/CalculationContext';
 import { ScenarioCard } from '../../components/ScenarioCard';
 import { FloorPlanCanvas } from '../../components/FloorPlanCanvas';
 import { ExportModal } from '../../components/ExportModal';
+import { ScenarioInventoryModal } from '../../components/ScenarioInventoryModal';
 import { Button } from '../../components/Button';
 import type { Column } from '../../types';
 import styles from './ResultsPage.module.scss';
@@ -16,10 +17,12 @@ function formatNum(n: number): string {
 export function ResultsPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { results, tent } = useCalculation();
+  const { results, tent, inventory } = useCalculation();
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isPanelOpen, setIsPanelOpen] = useState(true);
   const [isExportOpen, setIsExportOpen] = useState(false);
+  const [isInventoryModalOpen, setIsInventoryModalOpen] = useState(false);
+  const [inventoryModalScenarioIndex, setInventoryModalScenarioIndex] = useState(0);
   const [selectedColumn, setSelectedColumn] = useState<{
     column: Column;
     index: number;
@@ -61,6 +64,19 @@ export function ResultsPage() {
     },
     [selectedColumn]
   );
+
+  // Build brace color map from inventory
+  const braceColorMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    if (inventory) {
+      for (const brace of inventory.braces) {
+        if (brace.color) {
+          map[`${brace.length}×${brace.width}`] = brace.color;
+        }
+      }
+    }
+    return map;
+  }, [inventory]);
 
   if (!results || results.length === 0) {
     return null;
@@ -146,23 +162,23 @@ export function ResultsPage() {
                 scenario={scenario}
                 isSelected={index === selectedIndex}
                 onSelect={() => setSelectedIndex(index)}
+                onInventoryClick={() => {
+                  setInventoryModalScenarioIndex(index);
+                  setIsInventoryModalOpen(true);
+                }}
               />
             ))}
           </div>
 
-          {/* Summary stats */}
+          {/* Summary stats — setbacks for selected scenario */}
           <div className={styles.panelStats}>
             <div className={styles.stat}>
-              <span className={styles.statLabel}>{t('results.columns')}</span>
-              <span className={styles.statValue}>{selectedScenario.columns.length}</span>
+              <span className={styles.statLabel}>{t('results.railEndSetback')}</span>
+              <span className={styles.statValue}>{formatNum(selectedScenario.setback)}m</span>
             </div>
             <div className={styles.stat}>
-              <span className={styles.statLabel}>{t('results.braces')}</span>
-              <span className={styles.statValue}>
-                {selectedScenario.columns.reduce(
-                  (sum, col) => sum + col.columnType.braceCount, 0
-                )}
-              </span>
+              <span className={styles.statLabel}>{t('results.openEndSetbackStart')}</span>
+              <span className={styles.statValue}>{formatNum(selectedScenario.openEndSetbackStart)}m</span>
             </div>
           </div>
         </aside>
@@ -171,9 +187,9 @@ export function ResultsPage() {
         <div className={styles.canvasArea} ref={vizRef}>
           <FloorPlanCanvas
             scenario={selectedScenario}
-            tent={tent}
             onColumnClick={handleColumnClick}
             selectedColumnIndex={selectedColumn?.index ?? null}
+            braceColorMap={braceColorMap}
           />
 
           {/* Column detail popup */}
@@ -243,6 +259,15 @@ export function ResultsPage() {
         isOpen={isExportOpen}
         onClose={() => setIsExportOpen(false)}
         projectName={`${selectedScenario.name} — ${tent.length}m × ${tent.width}m`}
+      />
+
+      {/* ── Scenario Inventory Modal ── */}
+      <ScenarioInventoryModal
+        isOpen={isInventoryModalOpen}
+        onClose={() => setIsInventoryModalOpen(false)}
+        scenario={results[inventoryModalScenarioIndex]}
+        inventory={inventory}
+        braceColorMap={braceColorMap}
       />
     </div>
   );

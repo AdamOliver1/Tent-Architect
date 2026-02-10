@@ -42,7 +42,8 @@
     "remove": "Remove",
     "lengthPlaceholder": "Length",
     "widthPlaceholder": "Width",
-    "qtyPlaceholder": "Qty"
+    "qtyPlaceholder": "Qty",
+    "color": "Color"
   },
   "button": {
     "generate": "Generate Floor Plan",
@@ -66,6 +67,13 @@
     "columnWidth": "Column width",
     "fillLength": "Fill length",
     "gap": "Gap",
+    "totalGap": "Total Gap",
+    "braceKinds": "Brace Types",
+    "openEndSetbackStart": "Open-End Start",
+    "openEndSetbackEnd": "Open-End End",
+    "railEndSetback": "Rail-End Setback",
+    "inventoryDetails": "Inventory Details",
+    "inventoryBtn": "Inventory",
     "close": "Close column details"
   },
   "export": {

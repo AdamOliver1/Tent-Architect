@@ -42,7 +42,8 @@
     "remove": "إزالة",
     "lengthPlaceholder": "الطول",
     "widthPlaceholder": "العرض",
-    "qtyPlaceholder": "الكمية"
+    "qtyPlaceholder": "الكمية",
+    "color": "اللون"
   },
   "button": {
     "generate": "إنشاء مخطط الأرضية",
@@ -66,6 +67,13 @@
     "columnWidth": "عرض العمود",
     "fillLength": "طول التعبئة",
     "gap": "فجوة",
+    "totalGap": "إجمالي الفجوة",
+    "braceKinds": "أنواع الدعامات",
+    "openEndSetbackStart": "بداية الطرف المفتوح",
+    "openEndSetbackEnd": "نهاية الطرف المفتوح",
+    "railEndSetback": "تراجع القضيب",
+    "inventoryDetails": "تفاصيل المخزون",
+    "inventoryBtn": "المخزون",
     "close": "إغلاق تفاصيل العمود"
   },
   "export": {

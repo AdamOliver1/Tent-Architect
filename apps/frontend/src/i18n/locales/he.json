@@ -42,7 +42,8 @@
     "remove": "הסר",
     "lengthPlaceholder": "אורך",
     "widthPlaceholder": "רוחב",
-    "qtyPlaceholder": "כמות"
+    "qtyPlaceholder": "כמות",
+    "color": "צבע"
   },
   "button": {
     "generate": "צור תוכנית רצפה",
@@ -66,6 +67,13 @@
     "columnWidth": "רוחב עמודה",
     "fillLength": "אורך מילוי",
     "gap": "פער",
+    "totalGap": "סה\"כ פער",
+    "braceKinds": "סוגי חיזוקים",
+    "openEndSetbackStart": "קצה פתוח התחלה",
+    "openEndSetbackEnd": "קצה פתוח סוף",
+    "railEndSetback": "נסיגת מסילה",
+    "inventoryDetails": "פרטי מלאי",
+    "inventoryBtn": "מלאי",
     "close": "סגור פרטי עמודה"
   },
   "export": {

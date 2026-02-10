@@ -1,0 +1,239 @@
+@use '../../styles/variables' as *;
+
+// ── Dialog overlay ──
+.dialog {
+  border: none;
+  background: transparent;
+  padding: 0;
+  max-width: none;
+  max-height: none;
+  width: 100%;
+  height: 100%;
+  position: fixed;
+  inset: 0;
+
+  &::backdrop {
+    background: rgba(42, 47, 46, 0.4);
+    backdrop-filter: blur(4px);
+    animation: fadeIn 200ms ease-out;
+  }
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+// ── Modal container ──
+.modal {
+  width: 520px;
+  max-width: calc(100vw - 2 * $spacing-xl);
+  max-height: calc(100vh - 4 * $spacing-xl);
+  background: $surface-color;
+  border-radius: $radius-2xl;
+  box-shadow: $shadow-xl;
+  overflow: hidden;
+  animation: slideUp 300ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  display: flex;
+  flex-direction: column;
+}
+
+// ── Header ──
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: $spacing-xl $spacing-xl $spacing-lg;
+  flex-shrink: 0;
+}
+
+.title {
+  font-size: $font-xl;
+  font-weight: 600;
+  color: $text-color;
+}
+
+.subtitle {
+  font-size: $font-sm;
+  color: $text-muted;
+  margin-top: $spacing-2xs;
+}
+
+.closeBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: $radius-md;
+  background: transparent;
+  color: $text-muted;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    background: $background-color;
+    color: $text-color;
+  }
+}
+
+// ── Content ──
+.content {
+  padding: 0 $spacing-xl;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.section {
+  padding: $spacing-md 0;
+
+  &:not(:last-child) {
+    border-bottom: 1px solid $border-light;
+  }
+}
+
+.sectionTitle {
+  font-size: $font-sm;
+  font-weight: 600;
+  color: $text-secondary;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: $spacing-md;
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+}
+
+.badge {
+  font-size: $font-2xs;
+  font-weight: 500;
+  color: $text-muted;
+  background: $background-color;
+  padding: $spacing-2xs $spacing-sm;
+  border-radius: $radius-full;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+// ── Stat grid ──
+.statGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: $spacing-sm;
+}
+
+.statItem {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-2xs;
+  padding: $spacing-sm $spacing-md;
+  background: $background-color;
+  border-radius: $radius-md;
+}
+
+.statLabel {
+  font-size: $font-2xs;
+  font-weight: 500;
+  color: $text-muted;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.statValue {
+  font-size: $font-md;
+  font-weight: 600;
+  color: $text-color;
+  font-variant-numeric: tabular-nums;
+}
+
+// ── Brace list ──
+.braceList {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+.braceItem {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  padding: $spacing-sm $spacing-md;
+  border-radius: $radius-md;
+  background: $background-color;
+}
+
+.braceSwatch {
+  width: 20px;
+  height: 14px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.braceInfo {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.braceSize {
+  font-size: $font-sm;
+  font-weight: 500;
+  color: $text-color;
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+}
+
+.rotatedTag {
+  font-size: $font-2xs;
+  font-weight: 500;
+  color: $accent-color;
+  background: $accent-muted;
+  padding: 1px $spacing-xs;
+  border-radius: $radius-sm;
+}
+
+.braceCount {
+  font-size: $font-sm;
+  font-weight: 600;
+  color: $text-secondary;
+  font-variant-numeric: tabular-nums;
+}
+
+// ── Footer ──
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: $spacing-lg $spacing-xl;
+  flex-shrink: 0;
+}
+
+// ── Reduced motion ──
+@media (prefers-reduced-motion: reduce) {
+  .modal {
+    animation: none;
+  }
+
+  .dialog::backdrop {
+    animation: none;
+  }
+}
