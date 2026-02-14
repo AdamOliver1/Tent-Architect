@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useCalculation } from '../../context/CalculationContext';
 import { TentInput } from '../../components/TentInput';
 import { InventoryEditor } from '../../components/InventoryEditor';
+import { ConstraintsEditor } from '../../components/ConstraintsEditor';
 import { Button } from '../../components/Button';
 import styles from './DashboardPage.module.scss';
 
@@ -12,10 +13,12 @@ export function DashboardPage() {
   const {
     tent,
     inventory,
+    constraints,
     isLoading,
     error,
     setTent,
     setInventory,
+    setConstraints,
     calculate,
     clearError,
   } = useCalculation();
@@ -95,6 +98,12 @@ export function DashboardPage() {
                 disabled={isLoading}
               />
             )}
+
+            <ConstraintsEditor
+              constraints={constraints}
+              onChange={setConstraints}
+              disabled={isLoading}
+            />
 
             {error && (
               <div className={styles.error} role="alert">

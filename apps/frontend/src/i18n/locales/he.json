@@ -96,6 +96,15 @@
     "cancel": "ביטול",
     "close": "סגור חלון ייצוא"
   },
+  "constraints": {
+    "title": "אילוצים",
+    "minSetback": "נסיגה מינימלית",
+    "maxSetback": "נסיגה מקסימלית",
+    "maxColumnGap": "פער מקסימלי בעמודה",
+    "minSetbackHint": "מרחק מינימלי מקצוות האוהל",
+    "maxSetbackHint": "מרחק מקסימלי מקצוות האוהל",
+    "maxColumnGapHint": "פער מקסימלי מותר בכל עמודה"
+  },
   "error": {
     "invalidDimensions": "אנא הזן מידות אוהל תקינות",
     "calculationFailed": "החישוב נכשל. אנא נסה שוב.",

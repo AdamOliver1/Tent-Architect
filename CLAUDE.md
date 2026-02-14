@@ -14,7 +14,8 @@ Monorepo with two apps:
 - **Brace**: Floor panel. Sizes: 2.45×1.22m, 2×1m, 0.5×2m, 0.6×2.44m. Can rotate.
 - **Column**: Space between two rails, filled with braces end-to-end.
 - **Bin**: Filler piece covering gaps inside columns.
-- **Setback**: Min 0.08m from tent edges. Asymmetric: rail-end setback (left/right, symmetric) and open-end setbacks (start/end, can differ).
+- **Setback**: Configurable min/max distance from tent edges (defaults: min 0.08m, max 0.25m). Asymmetric: rail-end setback (left/right, symmetric) and open-end setbacks (start/end, can differ).
+- **Constraints**: User-configurable algorithm parameters: minSetback, maxSetback, maxColumnGap (default 0.39m).
 
 ## Axis Rules
 - **Rail Ends** (parallel to rails): Symmetric, NO bins. Excess → increase setback.

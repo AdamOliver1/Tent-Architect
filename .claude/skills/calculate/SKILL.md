@@ -25,11 +25,14 @@ Manually calculate a floor layout for debugging purposes.
    - Final scenarios (up to 20)
 
 ## Algorithm Constants
-- `MIN_SETBACK = 0.08m`, `MAX_SETBACK = 0.25m`
 - `RAIL_THICKNESS = 0.05m`
 - `PRECISION = 0.01m` (1cm discretization)
-- `MAX_COLUMN_GAP = 0.39m`
 - `MAX_SCENARIOS = 20`
+
+## User-Configurable Constraints (defaults)
+- `minSetback = 0.08m`, `maxSetback = 0.25m`
+- `maxColumnGap = 0.39m`
+- Passed via optional `constraints` field in the request body
 
 ## Debug Output
 Shows intermediate algorithm state:

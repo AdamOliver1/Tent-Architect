@@ -25,7 +25,7 @@ src/
 
 ## API Endpoints
 - `POST /calculate` — Run floor plan calculation
-  - Input: tent dimensions, inventory
+  - Input: tent dimensions, inventory, constraints (optional: minSetback, maxSetback, maxColumnGap)
   - Output: up to 6 Pareto-optimal scenarios with placements
 
 ## Algorithm Details

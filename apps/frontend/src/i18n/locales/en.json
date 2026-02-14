@@ -96,6 +96,15 @@
     "cancel": "Cancel",
     "close": "Close export dialog"
   },
+  "constraints": {
+    "title": "Constraints",
+    "minSetback": "Min Setback",
+    "maxSetback": "Max Setback",
+    "maxColumnGap": "Max Column Gap",
+    "minSetbackHint": "Minimum distance from tent edges",
+    "maxSetbackHint": "Maximum distance from tent edges",
+    "maxColumnGapHint": "Maximum gap allowed per column"
+  },
   "error": {
     "invalidDimensions": "Please enter valid tent dimensions",
     "calculationFailed": "Calculation failed. Please try again.",

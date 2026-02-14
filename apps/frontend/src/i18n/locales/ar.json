@@ -96,6 +96,15 @@
     "cancel": "إلغاء",
     "close": "إغلاق نافذة التصدير"
   },
+  "constraints": {
+    "title": "القيود",
+    "minSetback": "الحد الأدنى للتراجع",
+    "maxSetback": "الحد الأقصى للتراجع",
+    "maxColumnGap": "الحد الأقصى لفجوة العمود",
+    "minSetbackHint": "الحد الأدنى للمسافة من حواف الخيمة",
+    "maxSetbackHint": "الحد الأقصى للمسافة من حواف الخيمة",
+    "maxColumnGapHint": "الحد الأقصى للفجوة المسموح بها لكل عمود"
+  },
   "error": {
     "invalidDimensions": "يرجى إدخال أبعاد خيمة صالحة",
     "calculationFailed": "فشل الحساب. يرجى المحاولة مرة أخرى.",

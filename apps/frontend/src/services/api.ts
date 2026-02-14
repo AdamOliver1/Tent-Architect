@@ -1,10 +1,11 @@
-import type { TentDimensions, Inventory, Scenario } from '../types';
+import type { TentDimensions, Inventory, Scenario, Constraints } from '../types';
 
 const API_BASE = '/api';
 
 export interface CalculateRequest {
   tent: TentDimensions;
   inventory?: Inventory;
+  constraints?: Constraints;
 }
 
 export interface CalculateResponse {

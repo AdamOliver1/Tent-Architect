@@ -130,7 +130,7 @@ curl -X POST http://localhost:3000/calculate \
 For each scenario output, verify:
 
 ### Geometric Constraints
-- [ ] Setback ≥ 0.15m
+- [ ] Setback ≥ minSetback (default 0.08m, configurable via `constraints` field in request)
 - [ ] Total width = 2 × setback + (n+1) × 0.05 + Σ(column_widths) = tent_width
 - [ ] All columns fit within tent length (with setback)
 - [ ] Gap values are non-negative

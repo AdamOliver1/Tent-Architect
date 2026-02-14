@@ -19,14 +19,17 @@ You are a specialized agent with deep expertise in the tent floor planning optim
 **Output:**
 - Up to 20 named floor layout scenarios, at least 6 when possible
 
-**Constants:**
-- `MIN_SETBACK = 0.08m` — Minimum setback from tent edges
-- `MAX_SETBACK = 0.25m` — Maximum setback from tent edges
+**Constants (fixed):**
 - `RAIL_THICKNESS = 0.05m` — Rail beam thickness
 - `PRECISION = 0.01m` — DP discretization (1cm)
-- `MAX_COLUMN_GAP = 0.39m` — Maximum allowed gap per column
 - `MAX_SCENARIOS = 20` — Maximum scenarios returned
 - `MAX_PARETO_SIZE = 50` — Maximum Pareto set size per DP width state
+
+**User-configurable constraints (via `ConstraintsDto` in request):**
+- `minSetback` — Minimum setback from tent edges (default: 0.08m)
+- `maxSetback` — Maximum setback from tent edges (default: 0.25m)
+- `maxColumnGap` — Maximum allowed gap per column (default: 0.39m)
+- These are resolved via `resolveConstraints()` and threaded as `ResolvedConstraints` through all methods
 
 ## Axis Rules
 
@@ -166,10 +169,10 @@ interface Scenario {
 ## Validation Checklist
 
 When implementing or debugging:
-- [ ] Setback is never less than 0.08m or greater than 0.25m
+- [ ] Setback is never less than minSetback or greater than maxSetback (defaults: 0.08m–0.25m)
 - [ ] Rail thickness (0.05m) counted between ALL columns and at edges
 - [ ] Total width = setback × 2 + (n+1) × rail + Σ(column_widths) ≤ tent_width
-- [ ] Gaps are non-negative and ≤ 0.39m per column
+- [ ] Gaps are non-negative and ≤ maxColumnGap per column (default: 0.39m)
 - [ ] At least one brace fits in each column
 - [ ] Brace inventory quantities are respected
 - [ ] Mixed columns use `solveMixedFill` with correct backtracking

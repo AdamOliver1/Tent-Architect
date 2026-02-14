@@ -5,6 +5,7 @@ import {
   ValidateNested,
   IsArray,
   Min,
+  Max,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -69,6 +70,32 @@ export class InventoryDto {
 }
 
 /**
+ * Algorithm constraints DTO — all optional, defaults applied in service
+ */
+export class ConstraintsDto {
+  /** Minimum setback from tent edges in meters (default: 0.08) */
+  @IsNumber()
+  @Min(0)
+  @Max(2)
+  @IsOptional()
+  minSetback?: number;
+
+  /** Maximum setback from tent edges in meters (default: 0.25) */
+  @IsNumber()
+  @Min(0)
+  @Max(2)
+  @IsOptional()
+  maxSetback?: number;
+
+  /** Maximum allowed gap per column in meters (default: 0.39) */
+  @IsNumber()
+  @Min(0)
+  @Max(5)
+  @IsOptional()
+  maxColumnGap?: number;
+}
+
+/**
  * Calculate request DTO
  */
 export class CalculateRequestDto {
@@ -80,4 +107,9 @@ export class CalculateRequestDto {
   @Type(() => InventoryDto)
   @IsOptional()
   inventory?: InventoryDto;
+
+  @ValidateNested()
+  @Type(() => ConstraintsDto)
+  @IsOptional()
+  constraints?: ConstraintsDto;
 }

@@ -108,6 +108,7 @@
 .panelOpen {
   overflow-y: auto;
   width: 420px;
+  height: 1000px;
   padding: $spacing-xl;
 
   @media (max-width: $bp-lg) {

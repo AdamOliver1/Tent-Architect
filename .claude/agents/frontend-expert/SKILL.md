@@ -39,6 +39,7 @@ src/
 ├── components/
 │   ├── TentInput/              # Tent dimensions form
 │   ├── InventoryEditor/        # Brace/rail inventory form (collapsible)
+│   ├── ConstraintsEditor/     # Algorithm constraints form (collapsible)
 │   ├── FloorPlanCanvas/        # Canvas visualization
 │   ├── ScenarioCard/           # Individual scenario display
 │   ├── Button/                 # Reusable button component
@@ -540,6 +541,12 @@ export const CalculationProvider: React.FC<{ children: React.ReactNode }> = ({ c
 export interface TentDimensions {
   length: number;  // meters
   width: number;   // meters
+}
+
+export interface Constraints {
+  minSetback: number;   // default 0.08m
+  maxSetback: number;   // default 0.25m
+  maxColumnGap: number; // default 0.39m
 }
 
 // types/inventory.ts

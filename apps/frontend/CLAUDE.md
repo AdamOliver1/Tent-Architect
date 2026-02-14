@@ -26,6 +26,10 @@ src/
 │   ├── InventoryEditor/
 │   │   ├── InventoryEditor.tsx     # Brace/rail inventory form
 │   │   └── InventoryEditor.module.scss
+│   ├── ConstraintsEditor/
+│   │   ├── ConstraintsEditor.tsx   # Algorithm constraints form (collapsible)
+│   │   ├── ConstraintsEditor.module.scss
+│   │   └── index.ts
 │   ├── FloorPlanCanvas/
 │   │   ├── FloorPlanCanvas.tsx     # Canvas visualization
 │   │   └── FloorPlanCanvas.module.scss
@@ -69,6 +73,7 @@ src/
 - **Components**:
   - `TentInput` — Length and width fields
   - `InventoryEditor` — Add/edit braces and rails
+  - `ConstraintsEditor` — Algorithm constraints (min/max setback, max column gap)
   - `Button` — "Generate Floor Plan" button
 - **State**: Form inputs stored in `CalculationContext`
 - **Action**: On submit, call API and navigate to Results page
@@ -105,7 +110,7 @@ Use React Router v6, wrapped in CalculationProvider:
 ```
 
 ## State Management
-- **CalculationContext**: Stores tent inputs, inventory, and results
+- **CalculationContext**: Stores tent inputs, inventory, constraints, and results
 - Wraps entire app in `App.tsx` via `CalculationProvider`
 - Exports `useCalculation()` hook to access state and trigger API calls
 - Persists state during navigation between pages

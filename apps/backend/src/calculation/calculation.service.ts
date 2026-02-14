@@ -16,20 +16,25 @@ import { CalculateRequestDto, CalculateResponseDto } from './dto';
 /** Rail thickness in meters (5cm) - exported for potential use */
 export const RAIL_THICKNESS = 0.05;
 
-/** Minimum setback from tent edges in meters (8cm) */
-const MIN_SETBACK = 0.08;
+/** Default minimum setback from tent edges in meters (8cm) */
+const DEFAULT_MIN_SETBACK = 0.08;
 
-/** Maximum setback from tent edges in meters (25cm) */
-const MAX_SETBACK = 0.25;
-
-/** Maximum additional setback beyond minimum */
-const MAX_SETBACK_INCREASE = MAX_SETBACK - MIN_SETBACK; // 0.17
+/** Default maximum setback from tent edges in meters (25cm) */
+const DEFAULT_MAX_SETBACK = 0.25;
 
 /** Precision for discretization in meters (1cm) */
 const PRECISION = 0.01;
 
-/** Maximum allowed gap per column in meters (39cm) */
-const MAX_COLUMN_GAP = 0.39;
+/** Default maximum allowed gap per column in meters (39cm) */
+const DEFAULT_MAX_COLUMN_GAP = 0.39;
+
+/** Resolved algorithm constraints with defaults applied */
+interface ResolvedConstraints {
+  minSetback: number;
+  maxSetback: number;
+  maxSetbackIncrease: number;
+  maxColumnGap: number;
+}
 
 /** Maximum scenarios to return */
 const MAX_SCENARIOS = 20;
@@ -39,6 +44,26 @@ export class CalculationService {
   constructor(private readonly inventoryService: InventoryService) {}
 
   /**
+   * Resolve user-provided constraints with defaults
+   */
+  private resolveConstraints(input?: { minSetback?: number; maxSetback?: number; maxColumnGap?: number }): ResolvedConstraints {
+    const minSetback = input?.minSetback ?? DEFAULT_MIN_SETBACK;
+    const maxSetback = input?.maxSetback ?? DEFAULT_MAX_SETBACK;
+    const maxColumnGap = input?.maxColumnGap ?? DEFAULT_MAX_COLUMN_GAP;
+
+    if (minSetback > maxSetback) {
+      throw new BadRequestException('minSetback cannot be greater than maxSetback');
+    }
+
+    return {
+      minSetback,
+      maxSetback,
+      maxSetbackIncrease: maxSetback - minSetback,
+      maxColumnGap,
+    };
+  }
+
+  /**
    * Main calculation endpoint
    * Tries both orientations (which dimension becomes rail direction vs column direction)
    * and returns the best scenarios from all possibilities
@@ -46,8 +71,11 @@ export class CalculationService {
   calculate(request: CalculateRequestDto): CalculateResponseDto {
     const { tent } = request;
 
+    // Resolve constraints with defaults
+    const c = this.resolveConstraints(request.constraints);
+
     // Validate tent dimensions
-    this.validateTentDimensions(tent);
+    this.validateTentDimensions(tent, c);
 
     // Get and validate inventory
     const inventory = this.inventoryService.mergeWithDefaults(request.inventory);
@@ -62,7 +90,7 @@ export class CalculationService {
 
     // Try Orientation 1: Original dimensions
     try {
-      const solutions1 = this.calculateForOrientation(tent.length, tent.width, inventory);
+      const solutions1 = this.calculateForOrientation(tent.length, tent.width, inventory, c);
       const orientedTent1: TentDimensions = { length: tent.length, width: tent.width };
       for (const sol of solutions1) {
         taggedSolutions.push({ solution: sol, orientedTent: orientedTent1 });
@@ -78,7 +106,7 @@ export class CalculationService {
     // Try Orientation 2: Swapped dimensions (only if non-square)
     if (Math.abs(tent.length - tent.width) > 0.01) {
       try {
-        const solutions2 = this.calculateForOrientation(tent.width, tent.length, inventory);
+        const solutions2 = this.calculateForOrientation(tent.width, tent.length, inventory, c);
         const orientedTent2: TentDimensions = { length: tent.width, width: tent.length };
         for (const sol of solutions2) {
           taggedSolutions.push({ solution: sol, orientedTent: orientedTent2 });
@@ -113,6 +141,7 @@ export class CalculationService {
         name,
         tagged.orientedTent,
         inventory.rails,
+        c,
       );
       return scenario;
     });
@@ -134,10 +163,11 @@ export class CalculationService {
     railLength: number,
     columnSpan: number,
     inventory: { braces: Brace[]; rails: Rail[] },
+    c: ResolvedConstraints,
   ): DPSolution[] {
     // Calculate usable dimensions with minimum setback
-    const usableLength = railLength - 2 * MIN_SETBACK;
-    const usableWidth = columnSpan - 2 * MIN_SETBACK;
+    const usableLength = railLength - 2 * c.minSetback;
+    const usableWidth = columnSpan - 2 * c.minSetback;
 
     if (usableLength <= 0 || usableWidth <= 0) {
       throw new BadRequestException(
@@ -158,7 +188,7 @@ export class CalculationService {
     this.validateBraceInventory(inventory.braces, usableLength, usableWidth);
 
     // Find column combinations using DP (with brace quantity tracking)
-    const solutions = this.dpColumnSearch(columnTypes, usableWidth, inventory.braces);
+    const solutions = this.dpColumnSearch(columnTypes, usableWidth, inventory.braces, c);
 
     if (solutions.length === 0) {
       throw new BadRequestException(
@@ -167,28 +197,28 @@ export class CalculationService {
     }
 
     // Step 2.5: Open-end optimization (setback sweep) for each solution
-    const optimizedSolutions = this.optimizeOpenEndSetbacks(solutions, railLength);
+    const optimizedSolutions = this.optimizeOpenEndSetbacks(solutions, railLength, c);
 
-    // Filter invalid solutions (any setback out of [MIN_SETBACK, MAX_SETBACK])
+    // Filter invalid solutions (any setback out of [minSetback, maxSetback])
     const validSolutions = optimizedSolutions.filter((sol) => {
-      const widthSetback = MIN_SETBACK + sol.setbackExcess / 2;
-      if (widthSetback < MIN_SETBACK - 0.001 || widthSetback > MAX_SETBACK + 0.001) {
+      const widthSetback = c.minSetback + sol.setbackExcess / 2;
+      if (widthSetback < c.minSetback - 0.001 || widthSetback > c.maxSetback + 0.001) {
         return false;
       }
-      if ((sol.openEndSetbackStart ?? 0) < MIN_SETBACK - 0.001 ||
-          (sol.openEndSetbackStart ?? 0) > MAX_SETBACK + 0.001) {
+      if ((sol.openEndSetbackStart ?? 0) < c.minSetback - 0.001 ||
+          (sol.openEndSetbackStart ?? 0) > c.maxSetback + 0.001) {
         return false;
       }
-      if ((sol.openEndSetbackEnd ?? 0) < MIN_SETBACK - 0.001 ||
-          (sol.openEndSetbackEnd ?? 0) > MAX_SETBACK + 0.001) {
+      if ((sol.openEndSetbackEnd ?? 0) < c.minSetback - 0.001 ||
+          (sol.openEndSetbackEnd ?? 0) > c.maxSetback + 0.001) {
         return false;
       }
       return true;
     });
 
-    // Filter solutions where any column gap exceeds MAX_COLUMN_GAP
+    // Filter solutions where any column gap exceeds maxColumnGap
     const gapFilteredSolutions = validSolutions.filter((sol) =>
-      sol.columns.every((col) => col.gap <= MAX_COLUMN_GAP + 0.001),
+      sol.columns.every((col) => col.gap <= c.maxColumnGap + 0.001),
     );
 
     // Fallback: if gap filter removes everything, use validSolutions
@@ -202,13 +232,13 @@ export class CalculationService {
   /**
    * Validate tent dimensions
    */
-  private validateTentDimensions(tent: TentDimensions): void {
+  private validateTentDimensions(tent: TentDimensions, c: ResolvedConstraints): void {
     if (tent.length <= 0 || tent.width <= 0) {
       throw new BadRequestException('Tent dimensions must be positive');
     }
-    if (tent.length < 2 * MIN_SETBACK || tent.width < 2 * MIN_SETBACK) {
+    if (tent.length < 2 * c.minSetback || tent.width < 2 * c.minSetback) {
       throw new BadRequestException(
-        `Tent dimensions must be at least ${2 * MIN_SETBACK}m to accommodate minimum setback`,
+        `Tent dimensions must be at least ${2 * c.minSetback}m to accommodate minimum setback`,
       );
     }
   }
@@ -524,10 +554,11 @@ export class CalculationService {
    * distinctBraceTypes is tracked but not used for pruning during DP to keep
    * diverse solutions.
    */
-  dpColumnSearch(columnTypes: ColumnType[], targetWidth: number, braces?: Brace[]): DPSolution[] {
+  dpColumnSearch(columnTypes: ColumnType[], targetWidth: number, braces?: Brace[], c?: ResolvedConstraints): DPSolution[] {
     // Convert to centimeters for integer math
     const targetCm = Math.round(targetWidth / PRECISION);
-    const maxSetbackIncreaseCm = Math.round(MAX_SETBACK_INCREASE / PRECISION);
+    const maxSetbackIncrease = c?.maxSetbackIncrease ?? (DEFAULT_MAX_SETBACK - DEFAULT_MIN_SETBACK);
+    const maxSetbackIncreaseCm = Math.round(maxSetbackIncrease / PRECISION);
 
     // State: Map from width (in cm) to Pareto set of solutions
     const states = new Map<number, DPSolution[]>();
@@ -710,9 +741,9 @@ export class CalculationService {
    * (corresponding to MAX_SETBACK down to MIN_SETBACK on each side)
    * and find the usable_length that minimizes total gap across all columns.
    */
-  private optimizeOpenEndSetbacks(solutions: DPSolution[], railLength: number): DPSolution[] {
-    const minUsableLength = railLength - 2 * MAX_SETBACK;
-    const maxUsableLength = railLength - 2 * MIN_SETBACK;
+  private optimizeOpenEndSetbacks(solutions: DPSolution[], railLength: number, c: ResolvedConstraints): DPSolution[] {
+    const minUsableLength = railLength - 2 * c.maxSetback;
+    const maxUsableLength = railLength - 2 * c.minSetback;
 
     if (minUsableLength <= 0) {
       // Rail length too small for max setback; clamp
@@ -741,7 +772,7 @@ export class CalculationService {
               rotated: bp.rotated,
             }));
             const { gap: mixedGap } = this.solveMixedFill(fillOptions, usableLenCm);
-            if (mixedGap > MAX_COLUMN_GAP + 0.001) {
+            if (mixedGap > c.maxColumnGap + 0.001) {
               allColumnsValid = false;
               break;
             }
@@ -753,7 +784,7 @@ export class CalculationService {
               break;
             }
             const colGap = usableLen - n * col.fillLength;
-            if (colGap > MAX_COLUMN_GAP + 0.001) {
+            if (colGap > c.maxColumnGap + 0.001) {
               allColumnsValid = false;
               break;
             }
@@ -1054,20 +1085,21 @@ export class CalculationService {
     name: string,
     tent: TentDimensions,
     railInventory: Rail[],
+    c: ResolvedConstraints,
   ): Scenario {
     // Calculate actual width setback
     // Total width consumed = sum of column widths + (numColumns + 1) rails
     const numColumns = solution.columns.length;
     const totalColumnWidth = solution.columns.reduce((sum, col) => sum + col.columnWidth, 0);
     const totalRailWidth = (numColumns + 1) * RAIL_THICKNESS;
-    const usableWidth = tent.width - 2 * MIN_SETBACK;
+    const usableWidth = tent.width - 2 * c.minSetback;
     const additionalSetback = (usableWidth - totalColumnWidth - totalRailWidth) / 2;
-    const actualSetback = MIN_SETBACK + Math.max(0, additionalSetback);
+    const actualSetback = c.minSetback + Math.max(0, additionalSetback);
 
     // Use the optimized usable length from the open-end sweep
-    const usableLength = solution.optimizedUsableLength ?? (tent.length - 2 * MIN_SETBACK);
-    const openEndSetbackStart = solution.openEndSetbackStart ?? MIN_SETBACK;
-    const openEndSetbackEnd = solution.openEndSetbackEnd ?? MIN_SETBACK;
+    const usableLength = solution.optimizedUsableLength ?? (tent.length - 2 * c.minSetback);
+    const openEndSetbackStart = solution.openEndSetbackStart ?? c.minSetback;
+    const openEndSetbackEnd = solution.openEndSetbackEnd ?? c.minSetback;
 
     // Sort columns to group same brace type + orientation together for cleaner visualization
     // Sort by: 1) brace type (length × width), 2) orientation (rotated), 3) original order (stable)

@@ -5,12 +5,13 @@ import {
   useCallback,
   type ReactNode,
 } from 'react';
-import type { TentDimensions, Inventory, Scenario } from '../types';
+import type { TentDimensions, Inventory, Scenario, Constraints } from '../types';
 import { calculateFloorPlan, ApiError } from '../services/api';
 
 interface CalculationState {
   tent: TentDimensions;
   inventory: Inventory | null;
+  constraints: Constraints;
   results: Scenario[] | null;
   isLoading: boolean;
   error: string | null;
@@ -19,6 +20,7 @@ interface CalculationState {
 interface CalculationContextValue extends CalculationState {
   setTent: (tent: TentDimensions) => void;
   setInventory: (inventory: Inventory | null) => void;
+  setConstraints: (constraints: Constraints) => void;
   calculate: () => Promise<boolean>;
   clearResults: () => void;
   clearError: () => void;
@@ -27,6 +29,12 @@ interface CalculationContextValue extends CalculationState {
 const defaultTent: TentDimensions = {
   length: 20,
   width: 10,
+};
+
+const defaultConstraints: Constraints = {
+  minSetback: 0.08,
+  maxSetback: 0.25,
+  maxColumnGap: 0.39,
 };
 
 const defaultInventory: Inventory = {
@@ -50,6 +58,7 @@ export function CalculationProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<CalculationState>({
     tent: defaultTent,
     inventory: defaultInventory,
+    constraints: defaultConstraints,
     results: null,
     isLoading: false,
     error: null,
@@ -61,6 +70,10 @@ export function CalculationProvider({ children }: { children: ReactNode }) {
 
   const setInventory = useCallback((inventory: Inventory | null) => {
     setState((prev) => ({ ...prev, inventory }));
+  }, []);
+
+  const setConstraints = useCallback((constraints: Constraints) => {
+    setState((prev) => ({ ...prev, constraints }));
   }, []);
 
   const clearResults = useCallback(() => {
@@ -78,6 +91,7 @@ export function CalculationProvider({ children }: { children: ReactNode }) {
       const response = await calculateFloorPlan({
         tent: state.tent,
         inventory: state.inventory || undefined,
+        constraints: state.constraints,
       });
 
       setState((prev) => ({
@@ -101,7 +115,7 @@ export function CalculationProvider({ children }: { children: ReactNode }) {
       }));
       return false;
     }
-  }, [state.tent, state.inventory]);
+  }, [state.tent, state.inventory, state.constraints]);
 
   return (
     <CalculationContext.Provider
@@ -109,6 +123,7 @@ export function CalculationProvider({ children }: { children: ReactNode }) {
         ...state,
         setTent,
         setInventory,
+        setConstraints,
         calculate,
         clearResults,
         clearError,
