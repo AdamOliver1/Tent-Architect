@@ -7,8 +7,15 @@ import { FloorPlanCanvas } from '../../components/FloorPlanCanvas';
 import { ExportModal } from '../../components/ExportModal';
 import { ScenarioInventoryModal } from '../../components/ScenarioInventoryModal';
 import { Button } from '../../components/Button';
-import type { Column } from '../../types';
+import type { Column, Scenario } from '../../types';
 import styles from './ResultsPage.module.scss';
+
+type SortOption = 'default' | 'gap' | 'setback' | 'braces' | 'columns';
+type SortDirection = 'asc' | 'desc';
+
+function getBraceCount(scenario: Scenario): number {
+  return scenario.columns.reduce((sum, col) => sum + col.columnType.braceCount, 0);
+}
 
 function formatNum(n: number): string {
   return n.toFixed(3).replace(/\.?0+$/, '');
@@ -50,6 +57,8 @@ export function ResultsPage() {
   const navigate = useNavigate();
   const { results, tent, inventory } = useCalculation();
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [sortBy, setSortBy] = useState<SortOption>('default');
+  const [sortDir, setSortDir] = useState<SortDirection>('asc');
   const [isPanelOpen, setIsPanelOpen] = useState(true);
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [isInventoryModalOpen, setIsInventoryModalOpen] = useState(false);
@@ -109,6 +118,25 @@ export function ResultsPage() {
     }
     return map;
   }, [inventory]);
+
+  // Sort scenarios while preserving original indices for selection
+  const sortedScenarios = useMemo(() => {
+    if (!results || results.length === 0) return [];
+    const indexed = results.map((scenario, originalIndex) => ({ scenario, originalIndex }));
+    if (sortBy === 'default') return indexed;
+
+    const dir = sortDir === 'asc' ? 1 : -1;
+    return [...indexed].sort((a, b) => {
+      let diff = 0;
+      switch (sortBy) {
+        case 'gap': diff = a.scenario.totalGap - b.scenario.totalGap; break;
+        case 'setback': diff = a.scenario.setback - b.scenario.setback; break;
+        case 'braces': diff = getBraceCount(a.scenario) - getBraceCount(b.scenario); break;
+        case 'columns': diff = a.scenario.columns.length - b.scenario.columns.length; break;
+      }
+      return diff * dir;
+    });
+  }, [results, sortBy, sortDir]);
 
   if (!results || results.length === 0) {
     return null;
@@ -210,15 +238,46 @@ export function ResultsPage() {
             <h2>{t('results.scenarios')}</h2>
             <span className={styles.panelCount}>{results.length}</span>
           </div>
+          <div className={styles.sortBar}>
+            <select
+              id="sort-select"
+              className={styles.sortSelect}
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as SortOption)}
+              aria-label={t('results.sortBy')}
+            >
+              <option value="default">{t('results.sortDefault')}</option>
+              <option value="gap">{t('results.sortGap')}</option>
+              <option value="setback">{t('results.sortSetback')}</option>
+              <option value="braces">{t('results.sortBraces')}</option>
+              <option value="columns">{t('results.sortColumns')}</option>
+            </select>
+            <button
+              type="button"
+              className={`${styles.sortDirBtn} ${sortBy === 'default' ? styles.sortDirDisabled : ''}`}
+              onClick={() => setSortDir(d => d === 'asc' ? 'desc' : 'asc')}
+              disabled={sortBy === 'default'}
+              aria-label={sortDir === 'asc' ? t('results.sortAsc') : t('results.sortDesc')}
+              title={sortDir === 'asc' ? t('results.sortAsc') : t('results.sortDesc')}
+            >
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                {sortDir === 'asc' ? (
+                  <path d="M7 2v10M3.5 5.5 7 2l3.5 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                ) : (
+                  <path d="M7 12V2M3.5 8.5 7 12l3.5-3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                )}
+              </svg>
+            </button>
+          </div>
           <div className={styles.panelList}>
-            {results.map((scenario, index) => (
+            {sortedScenarios.map(({ scenario, originalIndex }) => (
               <ScenarioCard
-                key={index}
+                key={originalIndex}
                 scenario={scenario}
-                isSelected={index === selectedIndex}
-                onSelect={() => setSelectedIndex(index)}
+                isSelected={originalIndex === selectedIndex}
+                onSelect={() => setSelectedIndex(originalIndex)}
                 onInventoryClick={() => {
-                  setInventoryModalScenarioIndex(index);
+                  setInventoryModalScenarioIndex(originalIndex);
                   setIsInventoryModalOpen(true);
                 }}
               />
