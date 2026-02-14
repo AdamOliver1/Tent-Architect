@@ -106,13 +106,12 @@
 }
 
 .panelOpen {
-  overflow-y: scroll;
-  height: 1300px;
-  width: 300px;
+  overflow-y: auto;
+  width: 420px;
   padding: $spacing-xl;
 
   @media (max-width: $bp-lg) {
-    width: 260px;
+    width: 360px;
     padding: $spacing-lg;
   }
 
@@ -158,7 +157,7 @@
 .panelList {
   display: flex;
   flex-direction: column;
-  gap: $spacing-md;
+  gap: $spacing-lg;
   flex: 1;
   padding-right: $spacing-xs; // Space for scrollbar
 

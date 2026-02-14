@@ -78,7 +78,7 @@ export function FloorPlanCanvas({
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const [containerWidth, setContainerWidth] = useState(800);
-  const [containerHeight, setContainerHeight] = useState(600);
+  const [, setContainerHeight] = useState(600);
   const [animKey, setAnimKey] = useState(0);
   const [hoveredColumn, setHoveredColumn] = useState<number | null>(null);
 
@@ -89,7 +89,14 @@ export function FloorPlanCanvas({
   const panStart = useRef({ x: 0, y: 0 });
   const panOffsetStart = useRef({ x: 0, y: 0 });
 
-  // Asymmetric setbacks
+  // Rotate display so longest dimension is always horizontal
+  const rotated = scenario.tentLength > scenario.tentWidth;
+
+  // Display dimensions (after potential rotation — for SVG sizing only)
+  const displayWidth = rotated ? scenario.tentLength : scenario.tentWidth;
+  const displayLength = rotated ? scenario.tentWidth : scenario.tentLength;
+
+  // Setbacks always in data space (width→X, length→Y)
   const setbackLeft = scenario.setback; // rail-end
   const setbackRight = scenario.setback; // rail-end
   const setbackTop = scenario.openEndSetbackStart; // open-end start
@@ -118,33 +125,53 @@ export function FloorPlanCanvas({
     return () => ro.disconnect();
   }, []);
 
-  // Layout calculation - use scenario's actual dimensions
+  // Layout calculation
+  // displayWidth = horizontal dimension, displayLength = vertical dimension
   const layout = useMemo(() => {
     const padding = 80;
     const svgWidth = containerWidth;
 
-    // Calculate scale based on width, ensuring content fits well
     const availableWidth = svgWidth - 2 * padding;
-    const baseScale = availableWidth / scenario.tentWidth;
+    const baseScale = availableWidth / displayWidth;
+    const scale = Math.min(baseScale, 150);
 
-    // Use width-based scale, limit to reasonable maximum
-    const scale = Math.min(baseScale, 150); // Cap scale to prevent excessive sizing
+    const tentDisplayWidth = displayWidth * scale;
+    const tentDisplayHeight = displayLength * scale;
 
-    const tentDisplayWidth = scenario.tentWidth * scale;
-    const tentDisplayHeight = scenario.tentLength * scale;
-
-    // SVG height is exactly what we need for content + padding + space for labels
-    const svgHeight = tentDisplayHeight + padding * 2 + 100; // +100 for dimension labels and margin
+    const svgHeight = tentDisplayHeight + padding * 2 + 100;
 
     const offsetX = (svgWidth - tentDisplayWidth) / 2;
-    const offsetY = padding; // Fixed to top
+    const offsetY = padding;
 
     return { padding, svgWidth, svgHeight, scale, offsetX, offsetY, tentDisplayWidth, tentDisplayHeight };
-  }, [containerWidth, scenario.tentWidth, scenario.tentLength]);
+  }, [containerWidth, displayWidth, displayLength]);
 
+  // toX/toY map data-space coordinates to pixel SVG coordinates.
+  // Data space: tentWidth → X, tentLength → Y (always, regardless of rotation).
+  // The SVG content group has a transform that handles the rotation.
   const toX = useCallback((x: number) => layout.offsetX + x * layout.scale, [layout]);
   const toY = useCallback((y: number) => layout.offsetY + y * layout.scale, [layout]);
   const toS = useCallback((s: number) => s * layout.scale, [layout]);
+
+  // When rotated, the content group is transformed so length→horizontal.
+  // Content is drawn as if un-rotated (tentWidth→X, tentLength→Y).
+  // The transform rotates -90° around content center, then repositions.
+  const contentTransform = useMemo(() => {
+    if (!rotated) return undefined;
+    const W = scenario.tentWidth * layout.scale;
+    const H = scenario.tentLength * layout.scale;
+    // After -90° rotation around (W/2+offsetX, H/2+offsetY), the bounding box
+    // becomes H wide and W tall. We need to reposition to center in SVG.
+    const cx = layout.offsetX + W / 2;
+    const cy = layout.offsetY + H / 2;
+    // After rotation, top-left moves to (cx - H/2, cy - W/2).
+    // We want top-left at ((svgWidth - H)/2, padding).
+    const targetX = (layout.svgWidth - H) / 2;
+    const targetY = layout.padding;
+    const dx = targetX - (cx - H / 2);
+    const dy = targetY - (cy - W / 2);
+    return `translate(${dx}, ${dy}) rotate(-90, ${cx}, ${cy})`;
+  }, [rotated, scenario.tentWidth, scenario.tentLength, layout]);
 
   // ── Zoom handlers ──
   const handleZoomIn = useCallback(() => {
@@ -297,8 +324,8 @@ export function FloorPlanCanvas({
 
   // Mini-map dimensions
   const miniMapWidth = 140;
-  const miniMapHeight = Math.round(miniMapWidth * (scenario.tentLength / scenario.tentWidth));
-  const miniMapScale = (miniMapWidth - 16) / scenario.tentWidth;
+  const miniMapHeight = Math.round(miniMapWidth * (displayLength / displayWidth));
+  const miniMapScale = (miniMapWidth - 16) / displayWidth;
   const miniMapPadding = 8;
 
   // Viewport indicator on mini-map
@@ -351,14 +378,14 @@ export function FloorPlanCanvas({
 
     if (side === 'bottom') {
       // Vertical line outside right edge of tent
-      const lineX = toX(scenario.tentWidth) + OUTSIDE_OFFSET;
-      const y1 = toY(scenario.tentLength - value);
-      const y2 = toY(scenario.tentLength);
+      const lineX = toX(displayWidth) + OUTSIDE_OFFSET;
+      const y1 = toY(displayLength - value);
+      const y2 = toY(displayLength);
       const midY = (y1 + y2) / 2;
       return (
         <g key={side} className={styles.animFadeIn} style={{ animationDelay: `${delay}ms` }}>
-          <line x1={toX(scenario.tentWidth)} y1={y1} x2={lineX} y2={y1} stroke={LINE_COLOR} strokeWidth={1} />
-          <line x1={toX(scenario.tentWidth)} y1={y2} x2={lineX} y2={y2} stroke={LINE_COLOR} strokeWidth={1} />
+          <line x1={toX(displayWidth)} y1={y1} x2={lineX} y2={y1} stroke={LINE_COLOR} strokeWidth={1} />
+          <line x1={toX(displayWidth)} y1={y2} x2={lineX} y2={y2} stroke={LINE_COLOR} strokeWidth={1} />
           <line x1={lineX} y1={y1 + 4} x2={lineX} y2={y2 - 4}
             stroke={LINE_COLOR} strokeWidth={2}
             markerStart="url(#arrowUp)" markerEnd="url(#arrowDown)" />
@@ -395,14 +422,14 @@ export function FloorPlanCanvas({
 
     if (side === 'right') {
       // Horizontal line below the tent
-      const lineY = toY(scenario.tentLength) + OUTSIDE_OFFSET;
-      const x1 = toX(scenario.tentWidth - value);
-      const x2 = toX(scenario.tentWidth);
+      const lineY = toY(displayLength) + OUTSIDE_OFFSET;
+      const x1 = toX(displayWidth - value);
+      const x2 = toX(displayWidth);
       const midX = (x1 + x2) / 2;
       return (
         <g key={side} className={styles.animFadeIn} style={{ animationDelay: `${delay}ms` }}>
-          <line x1={x1} y1={toY(scenario.tentLength)} x2={x1} y2={lineY} stroke={LINE_COLOR} strokeWidth={1} />
-          <line x1={x2} y1={toY(scenario.tentLength)} x2={x2} y2={lineY} stroke={LINE_COLOR} strokeWidth={1} />
+          <line x1={x1} y1={toY(displayLength)} x2={x1} y2={lineY} stroke={LINE_COLOR} strokeWidth={1} />
+          <line x1={x2} y1={toY(displayLength)} x2={x2} y2={lineY} stroke={LINE_COLOR} strokeWidth={1} />
           <line x1={x1 + 4} y1={lineY} x2={x2 - 4} y2={lineY}
             stroke={LINE_COLOR} strokeWidth={2}
             markerStart="url(#arrowLeft)" markerEnd="url(#arrowRight)" />
@@ -455,6 +482,9 @@ export function FloorPlanCanvas({
           </pattern>
         </defs>
         <rect width={layout.svgWidth} height={layout.svgHeight} fill="url(#grid)" />
+
+        {/* ── Content group (rotated when tent length > width) ── */}
+        <g transform={contentTransform}>
 
         {/* ── Tent Outline ── */}
         <rect
@@ -531,27 +561,28 @@ export function FloorPlanCanvas({
           />
         </g>
 
-        {/* ── Rails ── */}
+        {/* ── Rails (one between every column pair + edges) ── */}
         <g
           className={styles.animFadeIn}
           style={{ animationDelay: `${ANIM.railDelay}ms` }}
         >
-          <rect
-            x={toX(setbackLeft)}
-            y={toY(setbackTop)}
-            width={toS(RAIL_THICKNESS)}
-            height={toS(scenario.tentLength - setbackTop - setbackBottom)}
-            fill={COLORS.rail}
-            rx={1}
-          />
-          <rect
-            x={toX(scenario.tentWidth - setbackRight - RAIL_THICKNESS)}
-            y={toY(setbackTop)}
-            width={toS(RAIL_THICKNESS)}
-            height={toS(scenario.tentLength - setbackTop - setbackBottom)}
-            fill={COLORS.rail}
-            rx={1}
-          />
+          {(() => {
+            const railPositions: number[] = [setbackLeft]; // First rail at left setback
+            for (const col of scenario.columns) {
+              railPositions.push(col.position + col.columnType.columnWidth);
+            }
+            return railPositions.map((pos, i) => (
+              <rect
+                key={i}
+                x={toX(pos)}
+                y={toY(setbackTop)}
+                width={toS(RAIL_THICKNESS)}
+                height={toS(scenario.tentLength - setbackTop - setbackBottom)}
+                fill={COLORS.rail}
+                rx={1}
+              />
+            ));
+          })()}
         </g>
 
         {/* ── Columns with braces ── */}
@@ -701,33 +732,35 @@ export function FloorPlanCanvas({
           );
         })}
 
-        {/* ── Setback dimension lines (rendered on top of columns) ── */}
-        {renderSetbackDim('top', setbackTop, ANIM.setbackDelay + 100)}
-        {renderSetbackDim('bottom', setbackBottom, ANIM.setbackDelay + 100)}
-        {renderSetbackDim('left', setbackLeft, ANIM.setbackDelay + 100)}
-        {renderSetbackDim('right', setbackRight, ANIM.setbackDelay + 100)}
+        </g>{/* end content group */}
 
-        {/* ── Overall dimension labels ── */}
+        {/* ── Setback dimension lines (in display coordinates, outside rotation) ── */}
+        {renderSetbackDim('top', rotated ? setbackLeft : setbackTop, ANIM.setbackDelay + 100)}
+        {renderSetbackDim('bottom', rotated ? setbackRight : setbackBottom, ANIM.setbackDelay + 100)}
+        {renderSetbackDim('left', rotated ? setbackTop : setbackLeft, ANIM.setbackDelay + 100)}
+        {renderSetbackDim('right', rotated ? setbackBottom : setbackRight, ANIM.setbackDelay + 100)}
+
+        {/* ── Overall dimension labels (in display coordinates) ── */}
         <g
           className={styles.animFadeIn}
           style={{
             animationDelay: `${ANIM.columnBaseDelay + scenario.columns.length * ANIM.columnStagger + ANIM.labelDelay}ms`,
           }}
         >
-          {/* Width (bottom) */}
+          {/* Width (bottom) — always shows the horizontal dimension */}
           <line
             x1={toX(0)}
-            y1={toY(scenario.tentLength) + 24}
-            x2={toX(scenario.tentWidth)}
-            y2={toY(scenario.tentLength) + 24}
+            y1={toY(displayLength) + 24}
+            x2={toX(displayWidth)}
+            y2={toY(displayLength) + 24}
             stroke={COLORS.dimLine}
             strokeWidth={1}
             markerStart="url(#arrowLeft)"
             markerEnd="url(#arrowRight)"
           />
           <rect
-            x={toX(scenario.tentWidth / 2) - 30}
-            y={toY(scenario.tentLength) + 15}
+            x={toX(displayWidth / 2) - 30}
+            y={toY(displayLength) + 15}
             width={60}
             height={20}
             rx={6}
@@ -736,28 +769,28 @@ export function FloorPlanCanvas({
             strokeWidth={0.5}
           />
           <text
-            x={toX(scenario.tentWidth / 2)}
-            y={toY(scenario.tentLength) + 29}
+            x={toX(displayWidth / 2)}
+            y={toY(displayLength) + 29}
             textAnchor="middle"
             className={styles.measureLabel}
           >
-            {formatDim(scenario.tentWidth)}m
+            {formatDim(rotated ? scenario.tentLength : scenario.tentWidth)}m
           </text>
 
-          {/* Length (right) */}
+          {/* Length (right) — always shows the vertical dimension */}
           <line
-            x1={toX(scenario.tentWidth) + 24}
+            x1={toX(displayWidth) + 24}
             y1={toY(0)}
-            x2={toX(scenario.tentWidth) + 24}
-            y2={toY(scenario.tentLength)}
+            x2={toX(displayWidth) + 24}
+            y2={toY(displayLength)}
             stroke={COLORS.dimLine}
             strokeWidth={1}
             markerStart="url(#arrowUp)"
             markerEnd="url(#arrowDown)"
           />
           <rect
-            x={toX(scenario.tentWidth) + 14}
-            y={toY(scenario.tentLength / 2) - 10}
+            x={toX(displayWidth) + 14}
+            y={toY(displayLength / 2) - 10}
             width={60}
             height={20}
             rx={6}
@@ -766,12 +799,12 @@ export function FloorPlanCanvas({
             strokeWidth={0.5}
           />
           <text
-            x={toX(scenario.tentWidth) + 44}
-            y={toY(scenario.tentLength / 2) + 4}
+            x={toX(displayWidth) + 44}
+            y={toY(displayLength / 2) + 4}
             textAnchor="middle"
             className={styles.measureLabel}
           >
-            {formatDim(scenario.tentLength)}m
+            {formatDim(rotated ? scenario.tentWidth : scenario.tentLength)}m
           </text>
         </g>
 
@@ -835,23 +868,34 @@ export function FloorPlanCanvas({
             <rect
               x={miniMapPadding}
               y={miniMapPadding}
-              width={scenario.tentWidth * miniMapScale}
-              height={scenario.tentLength * miniMapScale}
+              width={displayWidth * miniMapScale}
+              height={displayLength * miniMapScale}
               fill="none"
               stroke={COLORS.tentBorder}
               strokeWidth={1}
               rx={1}
             />
-            {/* Columns */}
+            {/* Columns (simplified — show in display orientation) */}
             {scenario.columns.map((col, i) => {
               const colColor = braceColorMap[`${col.columnType.braceLength}×${col.columnType.braceWidth}`] || COLORS.brace;
-              return (
+              return rotated ? (
+                <rect
+                  key={i}
+                  x={miniMapPadding + setbackTop * miniMapScale}
+                  y={miniMapPadding + col.position * miniMapScale}
+                  width={(displayWidth - setbackTop - setbackBottom) * miniMapScale}
+                  height={col.columnType.columnWidth * miniMapScale}
+                  fill={colColor}
+                  opacity={0.5}
+                  rx={0.5}
+                />
+              ) : (
                 <rect
                   key={i}
                   x={miniMapPadding + col.position * miniMapScale}
                   y={miniMapPadding + setbackTop * miniMapScale}
                   width={col.columnType.columnWidth * miniMapScale}
-                  height={(scenario.tentLength - setbackTop - setbackBottom) * miniMapScale}
+                  height={(displayLength - setbackTop - setbackBottom) * miniMapScale}
                   fill={colColor}
                   opacity={0.5}
                   rx={0.5}

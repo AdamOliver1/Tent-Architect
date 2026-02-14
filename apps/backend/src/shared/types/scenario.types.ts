@@ -76,10 +76,12 @@ export interface Scenario {
   /** Array of placed columns */
   columns: Column[];
   /**
-   * Array of rail configurations (2 rails per tent, one on each side)
-   * Each inner array contains the rail segments for that rail
+   * Single rail track pattern (segment layout for one track).
+   * All tracks use the same pattern. Array contains one inner array.
    */
   rails: RailSegment[][];
+  /** Number of rail tracks (numColumns + 1) — one between every column pair plus edges */
+  railTrackCount: number;
   /** Usable width (total column widths + rails) in meters */
   usableWidth: number;
   /** Optimized usable length along rail direction in meters */

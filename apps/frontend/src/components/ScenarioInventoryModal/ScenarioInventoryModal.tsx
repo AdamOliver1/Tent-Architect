@@ -202,18 +202,18 @@ export function ScenarioInventoryModal({
             </div>
           </div>
 
-          {/* Used rails from scenario */}
-          {scenario.rails && scenario.rails.length > 0 && (() => {
-            // Aggregate rail segments by length across all rail tracks
+          {/* Used rails from scenario (single track pattern × railTrackCount) */}
+          {scenario.rails && scenario.rails.length > 0 && scenario.rails[0] && (() => {
+            const trackPattern = scenario.rails[0];
+            const trackCount = scenario.railTrackCount || 1;
+            // Aggregate segments by length within the single track pattern
             const railUsage = new Map<number, number>();
-            for (const track of scenario.rails) {
-              for (const segment of track) {
-                const existing = railUsage.get(segment.length) || 0;
-                railUsage.set(segment.length, existing + 1);
-              }
+            for (const segment of trackPattern) {
+              const existing = railUsage.get(segment.length) || 0;
+              railUsage.set(segment.length, existing + 1);
             }
             const railEntries = Array.from(railUsage.entries()).sort((a, b) => b[0] - a[0]);
-            const totalSegments = railEntries.reduce((sum, [, count]) => sum + count, 0);
+            const totalSegments = railEntries.reduce((sum, [, count]) => sum + count * trackCount, 0);
 
             return (
               <div className={styles.section}>
@@ -222,14 +222,14 @@ export function ScenarioInventoryModal({
                   <span className={styles.badge}>{totalSegments} {t('inventory.rails').toLowerCase()}</span>
                 </h3>
                 <div className={styles.braceList}>
-                  {railEntries.map(([length, count]) => (
+                  {railEntries.map(([length, countPerTrack]) => (
                     <div key={length} className={styles.braceItem}>
                       <span className={styles.braceSwatch} style={{ backgroundColor: '#4A5553' }} />
                       <div className={styles.braceInfo}>
                         <span className={styles.braceSize}>
-                          {formatNum(length)}m
+                          {formatNum(length)}m ×{countPerTrack} × {trackCount} {t('results.railLines')}
                         </span>
-                        <span className={styles.braceCount}>×{count}</span>
+                        <span className={styles.braceCount}>= {countPerTrack * trackCount}</span>
                       </div>
                     </div>
                   ))}

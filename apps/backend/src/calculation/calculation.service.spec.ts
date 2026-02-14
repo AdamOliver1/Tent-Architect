@@ -129,13 +129,11 @@ describe('CalculationService', () => {
 
       const result = service.constructRails(usableLength, rails);
 
-      expect(result.length).toBe(2); // Two rails (one for each side)
+      expect(result.length).toBe(1); // Single track pattern (all tracks use same layout)
 
-      // Each rail should cover the usable length
-      for (const railSegments of result) {
-        const totalLength = railSegments.reduce((sum, seg) => sum + seg.length, 0);
-        expect(totalLength).toBeCloseTo(usableLength, 2);
-      }
+      // The track should cover the usable length
+      const totalLength = result[0].reduce((sum, seg) => sum + seg.length, 0);
+      expect(totalLength).toBeCloseTo(usableLength, 2);
     });
 
     it('should use longest available rails first', () => {
@@ -148,9 +146,8 @@ describe('CalculationService', () => {
 
       const result = service.constructRails(usableLength, rails);
 
-      // First segment of each rail should be 7.36m (longest that fits)
+      // First segment of the track should be 7.36m (longest that fits)
       expect(result[0][0].length).toBeCloseTo(7.36, 2);
-      expect(result[1][0].length).toBeCloseTo(7.36, 2);
     });
   });
 
@@ -167,7 +164,8 @@ describe('CalculationService', () => {
       for (const scenario of result.scenarios) {
         expect(scenario.setback).toBeGreaterThanOrEqual(0.08);
         expect(scenario.columns.length).toBeGreaterThan(0);
-        expect(scenario.rails.length).toBe(2);
+        expect(scenario.rails.length).toBe(1); // Single track pattern
+        expect(scenario.railTrackCount).toBeGreaterThan(0); // numColumns + 1
       }
     });
 

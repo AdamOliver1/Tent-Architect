@@ -1098,8 +1098,9 @@ export class CalculationService {
       position += columnType.columnWidth + RAIL_THICKNESS; // Column + rail after it
     }
 
-    // Construct rails
+    // Construct rails (single track pattern; all tracks use same layout)
     const rails = this.constructRails(usableLength, railInventory);
+    const railTrackCount = sortedColumns.length + 1;
 
     // Calculate total gap (linear gap sum, already computed by DP + sweep)
     const totalGap = solution.columns.reduce(
@@ -1115,6 +1116,7 @@ export class CalculationService {
       totalGap: Math.round(totalGap * 1000) / 1000,
       columns,
       rails,
+      railTrackCount,
       usableWidth: Math.round(totalColumnWidth * 1000) / 1000,
       usableLength: Math.round(usableLength * 1000) / 1000,
       tentLength: tent.length,
@@ -1131,68 +1133,62 @@ export class CalculationService {
     // Sort rails by length (descending) for greedy selection
     const sortedRails = [...railInventory].sort((a, b) => b.length - a.length);
 
-    // Construct two rails (one for each side)
-    const rails: RailSegment[][] = [];
+    // Build a single rail track pattern (all tracks use the same layout)
+    const railSegments: RailSegment[] = [];
+    let remainingLength = usableLength;
+    let position = 0;
 
-    for (let i = 0; i < 2; i++) {
-      const railSegments: RailSegment[] = [];
-      let remainingLength = usableLength;
-      let position = 0;
+    // Track rail usage for this construction
+    const railUsage = new Map<number, number>(
+      sortedRails.map((r) => [r.length, r.quantity]),
+    );
 
-      // Track rail usage for this construction
-      const railUsage = new Map<number, number>(
-        sortedRails.map((r) => [r.length, r.quantity]),
-      );
+    while (remainingLength > PRECISION) {
+      // Find longest rail that fits and is available
+      let selectedRail: Rail | null = null;
 
-      while (remainingLength > PRECISION) {
-        // Find longest rail that fits and is available
-        let selectedRail: Rail | null = null;
+      for (const rail of sortedRails) {
+        const available = railUsage.get(rail.length) || 0;
+        if (available > 0 && rail.length <= remainingLength + PRECISION) {
+          selectedRail = rail;
+          break;
+        }
+      }
 
+      if (!selectedRail) {
+        // If no exact fit, use longest available rail
+        // (rails can extend beyond usable area in practice)
         for (const rail of sortedRails) {
           const available = railUsage.get(rail.length) || 0;
-          if (available > 0 && rail.length <= remainingLength + PRECISION) {
+          if (available > 0) {
             selectedRail = rail;
             break;
           }
         }
-
-        if (!selectedRail) {
-          // If no exact fit, use longest available rail
-          // (rails can extend beyond usable area in practice)
-          for (const rail of sortedRails) {
-            const available = railUsage.get(rail.length) || 0;
-            if (available > 0) {
-              selectedRail = rail;
-              break;
-            }
-          }
-        }
-
-        if (!selectedRail) {
-          // No more rails available, break
-          break;
-        }
-
-        // Use this rail
-        const segmentLength = Math.min(selectedRail.length, remainingLength);
-        railSegments.push({
-          length: Math.round(segmentLength * 1000) / 1000,
-          position: Math.round(position * 1000) / 1000,
-        });
-
-        // Update tracking
-        const currentUsage = railUsage.get(selectedRail.length) || 0;
-        if (currentUsage !== Infinity) {
-          railUsage.set(selectedRail.length, currentUsage - 1);
-        }
-
-        position += segmentLength;
-        remainingLength -= segmentLength;
       }
 
-      rails.push(railSegments);
+      if (!selectedRail) {
+        // No more rails available, break
+        break;
+      }
+
+      // Use this rail
+      const segmentLength = Math.min(selectedRail.length, remainingLength);
+      railSegments.push({
+        length: Math.round(segmentLength * 1000) / 1000,
+        position: Math.round(position * 1000) / 1000,
+      });
+
+      // Update tracking
+      const currentUsage = railUsage.get(selectedRail.length) || 0;
+      if (currentUsage !== Infinity) {
+        railUsage.set(selectedRail.length, currentUsage - 1);
+      }
+
+      position += segmentLength;
+      remainingLength -= segmentLength;
     }
 
-    return rails;
+    return [railSegments];
   }
 }

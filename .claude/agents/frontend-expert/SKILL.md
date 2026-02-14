@@ -1042,7 +1042,7 @@ The app uses subtle, meaningful animations to enhance UX without being distracti
 **Visual Pattern**:
 - Horizontal layout with 4px colored left edge
 - Metric values: large (`$font-lg`), tabular nums
-- Metric labels: tiny (`$font-2xs`), uppercase, tracked
+- Metric labels: small (`$font-xs`), uppercase, tracked
 
 ### InventoryEditor Component
 **Location**: `src/components/InventoryEditor/`

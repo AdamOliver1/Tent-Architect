@@ -80,6 +80,13 @@ export function ScenarioCard({
             <span className={styles.metricValue}>{formatNumber(maxGap)}</span>
             <span className={styles.metricLabel}>{t('results.maxGap')}</span>
           </div>
+          <div className={styles.metricDivider} />
+          <div className={styles.metric}>
+            <span className={styles.metricValue}>
+              {(scenario.rails[0]?.length || 0) * (scenario.railTrackCount || 0)}
+            </span>
+            <span className={styles.metricLabel}>{t('inventory.rails')}</span>
+          </div>
         </div>
 
         <div className={styles.actions}>

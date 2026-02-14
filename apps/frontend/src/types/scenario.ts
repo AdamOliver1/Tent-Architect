@@ -36,6 +36,7 @@ export interface Scenario {
   totalGap: number;
   columns: Column[];
   rails: RailSegment[][];
+  railTrackCount: number;
   usableWidth: number;
   usableLength: number;
   tentLength: number;

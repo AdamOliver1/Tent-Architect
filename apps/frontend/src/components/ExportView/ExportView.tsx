@@ -42,13 +42,13 @@ function darkenColor(hex: string, amount: number): string {
 
 export function ExportView({ scenario, tentDimensions: _tentDimensions, braceColorMap }: ExportViewProps) {
   void _tentDimensions; // Props kept for interface compatibility; using scenario dimensions instead
-  // Use scenario dimensions (which match the animation) instead of user-input dimensions
-  // The backend may swap width/length; scenario.tentWidth and scenario.tentLength
-  // reflect the actual orientation used in the animation
-  const displayWidth = scenario.tentWidth;
-  const displayLength = scenario.tentLength;
 
-  // Asymmetric setbacks
+  // Rotate display so longest dimension is always horizontal
+  const rotated = scenario.tentLength > scenario.tentWidth;
+  const displayWidth = rotated ? scenario.tentLength : scenario.tentWidth;
+  const displayLength = rotated ? scenario.tentWidth : scenario.tentLength;
+
+  // Setbacks in data space (un-rotated)
   const setbackLeft = scenario.setback; // rail-end
   const setbackRight = scenario.setback; // rail-end
   const setbackTop = scenario.openEndSetbackStart; // open-end start
@@ -77,6 +77,20 @@ export function ExportView({ scenario, tentDimensions: _tentDimensions, braceCol
   const toX = (x: number) => offsetX + x * scale;
   const toY = (y: number) => offsetY + y * scale;
   const toS = (s: number) => s * scale;
+
+  // SVG transform for content group when rotated
+  const contentTransform = (() => {
+    if (!rotated) return undefined;
+    const W = scenario.tentWidth * scale;
+    const H = scenario.tentLength * scale;
+    const cx = offsetX + W / 2;
+    const cy = offsetY + H / 2;
+    const targetX = (SVG_WIDTH - H) / 2;
+    const targetY = padding + LABEL_MARGIN / 2;
+    const dx = targetX - (cx - H / 2);
+    const dy = targetY - (cy - W / 2);
+    return `translate(${dx}, ${dy}) rotate(-90, ${cx}, ${cy})`;
+  })();
 
   // Helper to determine label positioning and sizing
   const getBraceLabelProps = (columnType: any) => {
@@ -262,12 +276,15 @@ export function ExportView({ scenario, tentDimensions: _tentDimensions, braceCol
         {/* Background */}
         <rect width={SVG_WIDTH} height={SVG_HEIGHT} fill={COLORS.background} />
 
+        {/* Content group (rotated when tent length > width) */}
+        <g transform={contentTransform}>
+
         {/* Tent Outline */}
         <rect
           x={toX(0)}
           y={toY(0)}
-          width={toS(displayWidth)}
-          height={toS(displayLength)}
+          width={toS(scenario.tentWidth)}
+          height={toS(scenario.tentLength)}
           fill="rgba(255,255,255,0.3)"
           stroke={COLORS.tentBorder}
           strokeWidth={2}
@@ -286,20 +303,20 @@ export function ExportView({ scenario, tentDimensions: _tentDimensions, braceCol
           {/* Top strip (open-end start) */}
           {setbackTop > 0.001 && (
             <g>
-              <rect x={toX(0)} y={toY(0)} width={toS(displayWidth)} height={toS(setbackTop)}
+              <rect x={toX(0)} y={toY(0)} width={toS(scenario.tentWidth)} height={toS(setbackTop)}
                 fill={COLORS.setbackFill} />
-              <rect x={toX(0)} y={toY(0)} width={toS(displayWidth)} height={toS(setbackTop)}
+              <rect x={toX(0)} y={toY(0)} width={toS(scenario.tentWidth)} height={toS(setbackTop)}
                 fill="url(#setbackHatch)" />
             </g>
           )}
           {/* Bottom strip (open-end end) */}
           {setbackBottom > 0.001 && (
             <g>
-              <rect x={toX(0)} y={toY(displayLength - setbackBottom)}
-                width={toS(displayWidth)} height={toS(setbackBottom)}
+              <rect x={toX(0)} y={toY(scenario.tentLength - setbackBottom)}
+                width={toS(scenario.tentWidth)} height={toS(setbackBottom)}
                 fill={COLORS.setbackFill} />
-              <rect x={toX(0)} y={toY(displayLength - setbackBottom)}
-                width={toS(displayWidth)} height={toS(setbackBottom)}
+              <rect x={toX(0)} y={toY(scenario.tentLength - setbackBottom)}
+                width={toS(scenario.tentWidth)} height={toS(setbackBottom)}
                 fill="url(#setbackHatch)" />
             </g>
           )}
@@ -307,21 +324,21 @@ export function ExportView({ scenario, tentDimensions: _tentDimensions, braceCol
           {setbackLeft > 0.001 && (
             <g>
               <rect x={toX(0)} y={toY(setbackTop)}
-                width={toS(setbackLeft)} height={toS(displayLength - setbackTop - setbackBottom)}
+                width={toS(setbackLeft)} height={toS(scenario.tentLength - setbackTop - setbackBottom)}
                 fill={COLORS.setbackFill} />
               <rect x={toX(0)} y={toY(setbackTop)}
-                width={toS(setbackLeft)} height={toS(displayLength - setbackTop - setbackBottom)}
+                width={toS(setbackLeft)} height={toS(scenario.tentLength - setbackTop - setbackBottom)}
                 fill="url(#setbackHatch)" />
             </g>
           )}
           {/* Right strip (rail-end) */}
           {setbackRight > 0.001 && (
             <g>
-              <rect x={toX(displayWidth - setbackRight)} y={toY(setbackTop)}
-                width={toS(setbackRight)} height={toS(displayLength - setbackTop - setbackBottom)}
+              <rect x={toX(scenario.tentWidth - setbackRight)} y={toY(setbackTop)}
+                width={toS(setbackRight)} height={toS(scenario.tentLength - setbackTop - setbackBottom)}
                 fill={COLORS.setbackFill} />
-              <rect x={toX(displayWidth - setbackRight)} y={toY(setbackTop)}
-                width={toS(setbackRight)} height={toS(displayLength - setbackTop - setbackBottom)}
+              <rect x={toX(scenario.tentWidth - setbackRight)} y={toY(setbackTop)}
+                width={toS(setbackRight)} height={toS(scenario.tentLength - setbackTop - setbackBottom)}
                 fill="url(#setbackHatch)" />
             </g>
           )}
@@ -329,30 +346,31 @@ export function ExportView({ scenario, tentDimensions: _tentDimensions, braceCol
           {/* Inner usable border */}
           <rect
             x={toX(setbackLeft)} y={toY(setbackTop)}
-            width={toS(displayWidth - setbackLeft - setbackRight)}
-            height={toS(displayLength - setbackTop - setbackBottom)}
+            width={toS(scenario.tentWidth - setbackLeft - setbackRight)}
+            height={toS(scenario.tentLength - setbackTop - setbackBottom)}
             fill="none" stroke={COLORS.setbackLine} strokeWidth={1.5} strokeDasharray="6 3" rx={2}
           />
         </g>
 
-        {/* Rails */}
+        {/* Rails (one between every column pair + edges) */}
         <g>
-          <rect
-            x={toX(setbackLeft)}
-            y={toY(setbackTop)}
-            width={toS(RAIL_THICKNESS)}
-            height={toS(displayLength - setbackTop - setbackBottom)}
-            fill={COLORS.rail}
-            rx={1}
-          />
-          <rect
-            x={toX(displayWidth - setbackRight - RAIL_THICKNESS)}
-            y={toY(setbackTop)}
-            width={toS(RAIL_THICKNESS)}
-            height={toS(displayLength - setbackTop - setbackBottom)}
-            fill={COLORS.rail}
-            rx={1}
-          />
+          {(() => {
+            const railPositions: number[] = [setbackLeft];
+            for (const col of scenario.columns) {
+              railPositions.push(col.position + col.columnType.columnWidth);
+            }
+            return railPositions.map((pos, i) => (
+              <rect
+                key={i}
+                x={toX(pos)}
+                y={toY(setbackTop)}
+                width={toS(RAIL_THICKNESS)}
+                height={toS(scenario.tentLength - setbackTop - setbackBottom)}
+                fill={COLORS.rail}
+                rx={1}
+              />
+            ));
+          })()}
         </g>
 
         {/* Columns with braces */}
@@ -489,15 +507,17 @@ export function ExportView({ scenario, tentDimensions: _tentDimensions, braceCol
           );
         })}
 
-        {/* Setback dimension lines */}
-        {renderSetbackDim('top', setbackTop)}
-        {renderSetbackDim('bottom', setbackBottom)}
-        {renderSetbackDim('left', setbackLeft)}
-        {renderSetbackDim('right', setbackRight)}
+        </g>{/* end content group */}
 
-        {/* Overall dimension labels */}
+        {/* Setback dimension lines (in display coordinates, outside rotation) */}
+        {renderSetbackDim('top', rotated ? setbackLeft : setbackTop)}
+        {renderSetbackDim('bottom', rotated ? setbackRight : setbackBottom)}
+        {renderSetbackDim('left', rotated ? setbackTop : setbackLeft)}
+        {renderSetbackDim('right', rotated ? setbackBottom : setbackRight)}
+
+        {/* Overall dimension labels (in display coordinates) */}
         <g>
-          {/* Width (bottom) */}
+          {/* Horizontal dimension (bottom) */}
           <line
             x1={toX(0)}
             y1={toY(displayLength) + 24}
@@ -524,10 +544,10 @@ export function ExportView({ scenario, tentDimensions: _tentDimensions, braceCol
             textAnchor="middle"
             className={styles.measureLabel}
           >
-            {formatDim(displayWidth)}m
+            {formatDim(rotated ? scenario.tentLength : scenario.tentWidth)}m
           </text>
 
-          {/* Length (right) */}
+          {/* Vertical dimension (right) */}
           <line
             x1={toX(displayWidth) + 24}
             y1={toY(0)}
@@ -554,7 +574,7 @@ export function ExportView({ scenario, tentDimensions: _tentDimensions, braceCol
             textAnchor="middle"
             className={styles.measureLabel}
           >
-            {formatDim(displayLength)}m
+            {formatDim(rotated ? scenario.tentWidth : scenario.tentLength)}m
           </text>
         </g>
 

@@ -77,6 +77,7 @@
     "inventoryDetails": "Inventory Details",
     "inventoryBtn": "Inventory",
     "close": "Close column details",
+    "railLines": "lines",
     "scenarioNames": {
       "Best Width Fit": "Best Width Fit",
       "Least Brace Kinds": "Least Brace Kinds",

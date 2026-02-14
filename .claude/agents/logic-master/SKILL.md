@@ -118,7 +118,9 @@ From the full solution pool (both orientations), select scenarios by category:
 
 ### Rail Construction (`constructRails`)
 - Greedy: longest available rail first
-- Two rails constructed (one per side)
+- Single track pattern constructed (all tracks use same layout)
+- Returns `[railSegments]` — one inner array
+- `railTrackCount = numColumns + 1` stored separately on Scenario
 - Rails can extend beyond usable area if needed
 
 ## Types
@@ -153,7 +155,8 @@ interface Scenario {
   name: string; setback: number;
   openEndSetbackStart: number; openEndSetbackEnd: number;
   totalGap: number;            // Gap area (gap × columnWidth per column)
-  columns: Column[]; rails: RailSegment[][];
+  columns: Column[]; rails: RailSegment[][];  // Single track pattern (1 inner array)
+  railTrackCount: number;      // numColumns + 1
   usableWidth: number; usableLength: number;
   tentLength: number; tentWidth: number;
   distinctBraceTypes: number;
