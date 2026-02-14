@@ -259,6 +259,9 @@ export function ResultsPage() {
         isOpen={isExportOpen}
         onClose={() => setIsExportOpen(false)}
         projectName={`${selectedScenario.name} — ${tent.length}m × ${tent.width}m`}
+        scenario={selectedScenario}
+        tentDimensions={{ length: tent.length, width: tent.width }}
+        braceColorMap={braceColorMap}
       />
 
       {/* ── Scenario Inventory Modal ── */}

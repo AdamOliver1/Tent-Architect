@@ -27,14 +27,21 @@ const MAX_SETBACK_INCREASE = MAX_SETBACK - MIN_SETBACK; // 0.17
 /** Precision for discretization in meters (1cm) */
 const PRECISION = 0.01;
 
+/** Maximum allowed gap per column in meters (39cm) */
+const MAX_COLUMN_GAP = 0.39;
+
 /** Scenario name labels */
 const SCENARIO_NAMES = [
   'Best Width Fit',
   'Minimum Gaps',
   'Least Brace Kinds',
+  'Least Rails',
+  'Least Braces',
+  'Biggest Braces',
   'Balanced',
   'Balanced 2',
   'Balanced 3',
+  'Balanced 4',
 ];
 
 @Injectable()
@@ -59,18 +66,17 @@ export class CalculationService {
       throw new BadRequestException(validation.errors.join('; '));
     }
 
-    const allScenarios: Scenario[] = [];
+    // Collect ALL DPSolutions tagged with their oriented tent dimensions
+    const taggedSolutions: { solution: DPSolution; orientedTent: TentDimensions }[] = [];
     const errors: string[] = [];
 
-    // Try Orientation 1: Original dimensions (tent.length as rail direction, tent.width as column direction)
+    // Try Orientation 1: Original dimensions
     try {
-      const scenarios1 = this.calculateForOrientation(
-        tent.length,
-        tent.width,
-        inventory,
-        'Original',
-      );
-      allScenarios.push(...scenarios1);
+      const solutions1 = this.calculateForOrientation(tent.length, tent.width, inventory);
+      const orientedTent1: TentDimensions = { length: tent.length, width: tent.width };
+      for (const sol of solutions1) {
+        taggedSolutions.push({ solution: sol, orientedTent: orientedTent1 });
+      }
     } catch (err) {
       if (err instanceof BadRequestException) {
         errors.push(`Orientation 1 (${tent.length}m rails x ${tent.width}m columns): ${err.message}`);
@@ -79,17 +85,14 @@ export class CalculationService {
       }
     }
 
-    // Try Orientation 2: Swapped dimensions (tent.width as rail direction, tent.length as column direction)
-    // Only try if dimensions are different (no point trying if square tent)
+    // Try Orientation 2: Swapped dimensions (only if non-square)
     if (Math.abs(tent.length - tent.width) > 0.01) {
       try {
-        const scenarios2 = this.calculateForOrientation(
-          tent.width,
-          tent.length,
-          inventory,
-          'Rotated',
-        );
-        allScenarios.push(...scenarios2);
+        const solutions2 = this.calculateForOrientation(tent.width, tent.length, inventory);
+        const orientedTent2: TentDimensions = { length: tent.width, width: tent.length };
+        for (const sol of solutions2) {
+          taggedSolutions.push({ solution: sol, orientedTent: orientedTent2 });
+        }
       } catch (err) {
         if (err instanceof BadRequestException) {
           errors.push(`Orientation 2 (${tent.width}m rails x ${tent.length}m columns): ${err.message}`);
@@ -99,8 +102,7 @@ export class CalculationService {
       }
     }
 
-    // If no valid scenarios found in either orientation, throw error with details
-    if (allScenarios.length === 0) {
+    if (taggedSolutions.length === 0) {
       throw new BadRequestException(
         'No valid floor plan found in either orientation. ' +
         'Insufficient inventory or tent dimensions too challenging.\n' +
@@ -108,57 +110,40 @@ export class CalculationService {
       );
     }
 
-    // Convert scenarios to DP solutions for Pareto selection across orientations
-    const dpSolutions: DPSolution[] = allScenarios.map((scenario) => ({
-      setbackExcess: scenario.setback - MIN_SETBACK,
-      totalGap: scenario.totalGap,
-      columns: scenario.columns.map((col) => col.columnType),
-      braceUsage: {},
-      distinctBraceTypes: scenario.distinctBraceTypes,
-      optimizedUsableLength: scenario.usableLength,
-      openEndSetbackStart: scenario.openEndSetbackStart,
-      openEndSetbackEnd: scenario.openEndSetbackEnd,
-    }));
+    // Single named selection from the FULL pool
+    const allDPSolutions = taggedSolutions.map((t) => t.solution);
+    const selectedSolutions = this.selectNamedScenarios(allDPSolutions);
 
-    // Select up to 6 best scenarios using Pareto front
-    const selectedSolutions = this.selectParetoFront(dpSolutions);
-
-    // Map back to full scenarios
-    const selectedScenarios = selectedSolutions
-      .map((sol) => {
-        return allScenarios.find(
-          (scenario) =>
-            Math.abs(scenario.setback - MIN_SETBACK - sol.setbackExcess) < 0.001 &&
-            Math.abs(scenario.totalGap - sol.totalGap) < 0.001 &&
-            scenario.distinctBraceTypes === sol.distinctBraceTypes,
-        );
-      })
-      .filter((s): s is Scenario => s !== undefined);
-
-    // Rename scenarios for clarity
-    selectedScenarios.forEach((scenario, index) => {
-      scenario.name = SCENARIO_NAMES[index] || `Scenario ${index + 1}`;
+    // Construct scenarios only for selected solutions
+    const scenarios = selectedSolutions.map((sol, index) => {
+      const tagged = taggedSolutions.find((t) => t.solution === sol)!;
+      const scenario = this.constructScenario(
+        sol,
+        SCENARIO_NAMES[index] || `Scenario ${index + 1}`,
+        tagged.orientedTent,
+        inventory.rails,
+      );
+      return scenario;
     });
 
     return {
-      scenarios: selectedScenarios,
+      scenarios,
       tent,
     };
   }
 
   /**
    * Calculate floor plan for a specific orientation
+   * Returns raw DPSolution[] (no Pareto selection or scenario construction)
    * @param railLength - Dimension along which rails run (braces fill this direction)
    * @param columnSpan - Dimension across which columns are placed
    * @param inventory - Brace and rail inventory
-   * @param orientationLabel - Label for this orientation
    */
   private calculateForOrientation(
     railLength: number,
     columnSpan: number,
     inventory: { braces: Brace[]; rails: Rail[] },
-    orientationLabel: string,
-  ): Scenario[] {
+  ): DPSolution[] {
     // Calculate usable dimensions with minimum setback
     const usableLength = railLength - 2 * MIN_SETBACK;
     const usableWidth = columnSpan - 2 * MIN_SETBACK;
@@ -210,31 +195,17 @@ export class CalculationService {
       return true;
     });
 
-    if (validSolutions.length === 0) {
-      throw new BadRequestException(
-        'No valid floor plan found. All solutions have setbacks outside [0.08m, 0.25m].',
-      );
+    // Filter solutions where any column gap exceeds MAX_COLUMN_GAP
+    const gapFilteredSolutions = validSolutions.filter((sol) =>
+      sol.columns.every((col) => col.gap <= MAX_COLUMN_GAP + 0.001),
+    );
+
+    // Fallback: if gap filter removes everything, use validSolutions
+    if (gapFilteredSolutions.length === 0) {
+      return validSolutions;
     }
 
-    // Select Pareto-optimal solutions for this orientation
-    const selectedSolutions = this.selectParetoFront(validSolutions);
-
-    // Construct full scenarios with rails
-    const orientedTent: TentDimensions = {
-      length: railLength,
-      width: columnSpan,
-    };
-
-    const scenarios = selectedSolutions.map((solution, index) => {
-      return this.constructScenario(
-        solution,
-        `${orientationLabel} ${index + 1}`,
-        orientedTent,
-        inventory.rails,
-      );
-    });
-
-    return scenarios;
+    return gapFilteredSolutions;
   }
 
   /**
@@ -492,10 +463,11 @@ export class CalculationService {
   ): void {
     const existing = states.get(widthCm) || [];
 
-    // Check if new solution is dominated by any existing solution (compare on totalGap only)
+    // Check if new solution is dominated (on totalGap, distinctBraceTypes, columns.length)
     const isDominated = existing.some(
       (s) => s.totalGap <= newSolution.totalGap &&
-             s.distinctBraceTypes <= newSolution.distinctBraceTypes,
+             s.distinctBraceTypes <= newSolution.distinctBraceTypes &&
+             s.columns.length <= newSolution.columns.length,
     );
 
     if (isDominated) {
@@ -505,7 +477,8 @@ export class CalculationService {
     // Remove solutions dominated by the new one
     const nonDominated = existing.filter(
       (s) => !(newSolution.totalGap <= s.totalGap &&
-               newSolution.distinctBraceTypes <= s.distinctBraceTypes),
+               newSolution.distinctBraceTypes <= s.distinctBraceTypes &&
+               newSolution.columns.length <= s.columns.length),
     );
 
     // Limit the Pareto set size to prevent memory explosion
@@ -554,7 +527,12 @@ export class CalculationService {
             allColumnsValid = false;
             break;
           }
-          totalGap += usableLen - n * col.fillLength;
+          const colGap = usableLen - n * col.fillLength;
+          if (colGap > MAX_COLUMN_GAP + 0.001) {
+            allColumnsValid = false;
+            break;
+          }
+          totalGap += colGap;
         }
 
         if (allColumnsValid && totalGap < bestTotalGap - 0.0001) {
@@ -599,115 +577,148 @@ export class CalculationService {
   }
 
   /**
-   * Select up to 6 scenarios from the Pareto front
-   * 1. Best Width Fit (minimum setback excess)
-   * 2. Minimum Gaps (minimum total gap)
-   * 3. Least Brace Kinds (fewest distinct brace types, tie-break: lowest gap)
-   * 4. Balanced (knee point - closest to origin in normalized space)
-   * 5. Balanced 2 (evenly-spaced along Pareto front)
-   * 6. Balanced 3 (evenly-spaced along Pareto front)
+   * Select named scenarios from the full solution pool.
+   * Each criterion does a simple reduce over ALL solutions — no Pareto filtering.
+   * Returns up to 10 unique solutions, minimum 6 if enough exist.
    */
-  selectParetoFront(solutions: DPSolution[]): DPSolution[] {
+  selectNamedScenarios(solutions: DPSolution[]): DPSolution[] {
     if (solutions.length === 0) {
       return [];
     }
 
-    // Filter to true Pareto optimal solutions (on setbackExcess, totalGap, distinctBraceTypes)
-    const paretoOptimal = solutions.filter((s1) => {
-      return !solutions.some(
-        (s2) =>
-          s2 !== s1 &&
-          s2.setbackExcess <= s1.setbackExcess &&
-          s2.totalGap <= s1.totalGap &&
-          s2.distinctBraceTypes <= s1.distinctBraceTypes &&
-          (s2.setbackExcess < s1.setbackExcess ||
-           s2.totalGap < s1.totalGap ||
-           s2.distinctBraceTypes < s1.distinctBraceTypes),
-      );
-    });
-
-    if (paretoOptimal.length === 0) {
+    if (solutions.length === 1) {
       return [solutions[0]];
     }
 
-    if (paretoOptimal.length === 1) {
-      return paretoOptimal;
-    }
-
-    // Sort by setback excess (ascending) for consistent ordering
-    paretoOptimal.sort((a, b) => a.setbackExcess - b.setbackExcess);
-
     const selected: DPSolution[] = [];
-    const usedIndices = new Set<number>();
+    const selectedSet = new Set<DPSolution>();
 
-    // Helper to add a solution if it is not already selected
     const addUnique = (sol: DPSolution) => {
-      const idx = paretoOptimal.indexOf(sol);
-      if (idx >= 0 && !usedIndices.has(idx)) {
-        usedIndices.add(idx);
+      if (!selectedSet.has(sol)) {
+        selectedSet.add(sol);
         selected.push(sol);
       }
     };
 
-    // 1. Best Width Fit: minimum setback excess
-    addUnique(paretoOptimal[0]);
-
-    // 2. Minimum Gaps: minimum total gap
-    const minGapSolution = paretoOptimal.reduce((best, current) =>
-      current.totalGap < best.totalGap ? current : best,
-    );
-    addUnique(minGapSolution);
-
-    // 3. Least Brace Kinds: fewest distinct brace types (tie-break: lowest gap)
-    const leastKindsSolution = paretoOptimal.reduce((best, current) => {
-      if (current.distinctBraceTypes < best.distinctBraceTypes) return current;
-      if (current.distinctBraceTypes === best.distinctBraceTypes &&
-          current.totalGap < best.totalGap) return current;
+    // 1. Best Width Fit: min setbackExcess, tie-break: min totalGap
+    const bestWidthFit = solutions.reduce((best, cur) => {
+      if (cur.setbackExcess < best.setbackExcess) return cur;
+      if (cur.setbackExcess === best.setbackExcess && cur.totalGap < best.totalGap) return cur;
       return best;
     });
-    addUnique(leastKindsSolution);
+    addUnique(bestWidthFit);
 
-    // 4. Balanced: knee point (closest to origin in normalized setbackExcess x totalGap space)
-    if (paretoOptimal.length > 2) {
-      const maxSetback = Math.max(...paretoOptimal.map((s) => s.setbackExcess));
-      const minSetback = Math.min(...paretoOptimal.map((s) => s.setbackExcess));
-      const maxGap = Math.max(...paretoOptimal.map((s) => s.totalGap));
-      const minGap = Math.min(...paretoOptimal.map((s) => s.totalGap));
+    // 2. Minimum Gaps: min totalGap, tie-break: min setbackExcess
+    const minGaps = solutions.reduce((best, cur) => {
+      if (cur.totalGap < best.totalGap) return cur;
+      if (cur.totalGap === best.totalGap && cur.setbackExcess < best.setbackExcess) return cur;
+      return best;
+    });
+    addUnique(minGaps);
+
+    // 3. Least Brace Kinds: min distinctBraceTypes, tie-break: min totalGap
+    const leastKinds = solutions.reduce((best, cur) => {
+      if (cur.distinctBraceTypes < best.distinctBraceTypes) return cur;
+      if (cur.distinctBraceTypes === best.distinctBraceTypes && cur.totalGap < best.totalGap) return cur;
+      return best;
+    });
+    addUnique(leastKinds);
+
+    // 4. Least Rails: min columns.length, tie-break: min totalGap
+    const leastRails = solutions.reduce((best, cur) => {
+      if (cur.columns.length < best.columns.length) return cur;
+      if (cur.columns.length === best.columns.length && cur.totalGap < best.totalGap) return cur;
+      return best;
+    });
+    addUnique(leastRails);
+
+    // 5. Least Braces: min total brace count, tie-break: min totalGap
+    const totalBraceCount = (sol: DPSolution): number =>
+      sol.columns.reduce((sum, col) => sum + col.braceCount, 0);
+
+    const leastBraces = solutions.reduce((best, cur) => {
+      if (totalBraceCount(cur) < totalBraceCount(best)) return cur;
+      if (totalBraceCount(cur) === totalBraceCount(best) && cur.totalGap < best.totalGap) return cur;
+      return best;
+    });
+    addUnique(leastBraces);
+
+    // 6. Biggest Braces: max coverage by largest brace type, tie-break: min totalGap
+    const largestBraceCoverage = (sol: DPSolution): number => {
+      let maxArea = 0;
+      let maxCoverage = 0;
+      for (const col of sol.columns) {
+        const area = col.braceLength * col.braceWidth;
+        const coverage = area * col.braceCount;
+        if (area > maxArea || (area === maxArea && coverage > maxCoverage)) {
+          maxArea = area;
+          maxCoverage = coverage;
+        }
+      }
+      return maxCoverage;
+    };
+    const biggestBraces = solutions.reduce((best, cur) => {
+      const bestCov = largestBraceCoverage(best);
+      const curCov = largestBraceCoverage(cur);
+      if (curCov > bestCov) return cur;
+      if (curCov === bestCov && cur.totalGap < best.totalGap) return cur;
+      return best;
+    });
+    addUnique(biggestBraces);
+
+    // 7. Balanced: knee point (closest to origin in normalized setback × gap space)
+    if (solutions.length > 2) {
+      const maxSetback = Math.max(...solutions.map((s) => s.setbackExcess));
+      const minSetback = Math.min(...solutions.map((s) => s.setbackExcess));
+      const maxGap = Math.max(...solutions.map((s) => s.totalGap));
+      const minGap = Math.min(...solutions.map((s) => s.totalGap));
 
       const setbackRange = maxSetback - minSetback || 1;
       const gapRange = maxGap - minGap || 1;
 
-      // Find point closest to origin in normalized space
       let balanced: DPSolution | null = null;
       let minDistance = Infinity;
 
-      for (const solution of paretoOptimal) {
-        const normSetback = (solution.setbackExcess - minSetback) / setbackRange;
-        const normGap = (solution.totalGap - minGap) / gapRange;
+      for (const sol of solutions) {
+        const normSetback = (sol.setbackExcess - minSetback) / setbackRange;
+        const normGap = (sol.totalGap - minGap) / gapRange;
         const distance = Math.sqrt(normSetback * normSetback + normGap * normGap);
-
         if (distance < minDistance) {
           minDistance = distance;
-          balanced = solution;
+          balanced = sol;
         }
       }
 
       if (balanced) {
         addUnique(balanced);
       }
+    }
 
-      // 5 & 6. Balanced 2 and 3: evenly-spaced points along the sorted Pareto front
-      // Pick points at 1/3 and 2/3 of the Pareto front (by index)
-      if (paretoOptimal.length >= 4) {
-        const idx1 = Math.round(paretoOptimal.length / 3);
-        const idx2 = Math.round((2 * paretoOptimal.length) / 3);
-        addUnique(paretoOptimal[idx1]);
-        addUnique(paretoOptimal[idx2]);
+    // 8-10. Balanced 2-4: evenly-spaced from remaining pool sorted by totalGap
+    const remaining = solutions
+      .filter((s) => !selectedSet.has(s))
+      .sort((a, b) => a.totalGap - b.totalGap);
+
+    if (remaining.length > 0) {
+      const numSlots = Math.min(3, remaining.length);
+      for (let i = 0; i < numSlots; i++) {
+        const idx = Math.round((i * (remaining.length - 1)) / Math.max(numSlots - 1, 1));
+        addUnique(remaining[idx]);
       }
     }
 
-    // Return up to 6 unique scenarios
-    return selected.slice(0, 6);
+    // Fill to 6 if needed: add remaining sorted by totalGap
+    if (selected.length < 6) {
+      const leftover = solutions
+        .filter((s) => !selectedSet.has(s))
+        .sort((a, b) => a.totalGap - b.totalGap);
+      for (const sol of leftover) {
+        if (selected.length >= 6) break;
+        addUnique(sol);
+      }
+    }
+
+    return selected.slice(0, 10);
   }
 
   /**
@@ -733,11 +744,28 @@ export class CalculationService {
     const openEndSetbackStart = solution.openEndSetbackStart ?? MIN_SETBACK;
     const openEndSetbackEnd = solution.openEndSetbackEnd ?? MIN_SETBACK;
 
+    // Sort columns to group same brace type + orientation together for cleaner visualization
+    // Sort by: 1) brace type (length × width), 2) orientation (rotated), 3) original order (stable)
+    const sortedColumns = [...solution.columns].sort((a, b) => {
+      // Primary: Group by brace type (length × width)
+      const keyA = `${a.braceLength}×${a.braceWidth}`;
+      const keyB = `${b.braceLength}×${b.braceWidth}`;
+      if (keyA !== keyB) {
+        return keyA.localeCompare(keyB);
+      }
+      // Secondary: Group by orientation (non-rotated first, then rotated)
+      if (a.rotated !== b.rotated) {
+        return a.rotated ? 1 : -1;
+      }
+      // Tertiary: Maintain stable order for same type + orientation
+      return 0;
+    });
+
     // Place columns with rail gaps between them
     const columns: Column[] = [];
     let position = actualSetback + RAIL_THICKNESS; // Start after first rail
 
-    for (const columnType of solution.columns) {
+    for (const columnType of sortedColumns) {
       columns.push({
         columnType,
         position,

@@ -224,14 +224,38 @@ export function FloorPlanCanvas({
     [braceColorMap]
   );
 
-  // Brace label visibility
-  const showBraceLabels = useMemo(() => {
-    if (scenario.columns.length === 0) return false;
-    const firstCol = scenario.columns[0].columnType;
-    const pixelW = toS(firstCol.columnWidth) * zoom;
-    const pixelH = toS(firstCol.fillLength) * zoom;
-    return pixelW > 40 && pixelH > 18;
-  }, [scenario.columns, toS, zoom]);
+  // Helper function to calculate brace label properties
+  const getBraceLabelProps = useCallback((columnType: any) => {
+    const pixelW = toS(columnType.columnWidth) * zoom;
+    const pixelH = toS(columnType.fillLength) * zoom;
+
+    // Always show labels, but adjust positioning and size
+    const labelText = `${formatDim(columnType.braceLength)}×${formatDim(columnType.braceWidth)}`;
+    const estimatedTextWidth = labelText.length * 5.5;
+
+    // Determine if label fits inside
+    const fitsInside = pixelW >= (estimatedTextWidth + 8) && pixelH >= 16;
+
+    // Dynamic font size
+    let fontSize = 9;
+    if (pixelH < 25 || pixelW < 50) {
+      fontSize = 8;
+    } else if (pixelH > 40 && pixelW > 80) {
+      fontSize = 10;
+    }
+
+    // Very small braces get tiny font
+    if (pixelH < 15 || pixelW < 30) {
+      fontSize = 7;
+    }
+
+    return {
+      show: true,
+      fontSize,
+      fitsInside,
+      outside: !fitsInside
+    };
+  }, [toS, zoom]);
 
   const showGapLabels = useMemo(() => {
     return scenario.columns.some((col) => {
@@ -526,6 +550,7 @@ export function FloorPlanCanvas({
           const braceColor = getBraceColor(column);
           const braceHoverColor = lightenColor(braceColor, 16);
           const braceBorderColor = darkenColor(braceColor, 16);
+          const labelProps = getBraceLabelProps(columnType);
 
           return (
             <g
@@ -558,15 +583,30 @@ export function FloorPlanCanvas({
                       rx={3}
                       className={styles.braceRect}
                     />
-                    {showBraceLabels && i === 0 && (
-                      <text
-                        x={bx + bw / 2}
-                        y={by + bh / 2 + 4}
-                        textAnchor="middle"
-                        className={styles.braceDimLabel}
-                      >
-                        {formatDim(columnType.braceLength)}×{formatDim(columnType.braceWidth)}
-                      </text>
+                    {i === 0 && labelProps.show && (
+                      labelProps.outside ? (
+                        // Label above brace when it doesn't fit inside
+                        <text
+                          x={bx + bw / 2}
+                          y={by - 4}
+                          textAnchor="middle"
+                          className={styles.braceDimLabelOutside}
+                          style={{ fontSize: `${labelProps.fontSize}px` }}
+                        >
+                          {formatDim(columnType.braceLength)}×{formatDim(columnType.braceWidth)}
+                        </text>
+                      ) : (
+                        // Label inside brace
+                        <text
+                          x={bx + bw / 2}
+                          y={by + bh / 2 + 4}
+                          textAnchor="middle"
+                          className={styles.braceDimLabel}
+                          style={{ fontSize: `${labelProps.fontSize}px` }}
+                        >
+                          {formatDim(columnType.braceLength)}×{formatDim(columnType.braceWidth)}
+                        </text>
+                      )
                     )}
                   </g>
                 );

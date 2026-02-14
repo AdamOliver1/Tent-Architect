@@ -1,63 +1,31 @@
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { Scenario } from '../../types';
 import { Button } from '../Button';
+import { ExportView } from '../ExportView';
+import { exportToPNG, generateExportFilename } from '../../utils/export';
 import styles from './ExportModal.module.scss';
-
-interface ExportFormat {
-  id: string;
-  label: string;
-  description: string;
-  icon: React.ReactNode;
-}
 
 interface ExportModalProps {
   isOpen: boolean;
   onClose: () => void;
   projectName?: string;
+  scenario: Scenario;
+  tentDimensions: { length: number; width: number };
+  braceColorMap: Record<string, string>;
 }
 
-const EXPORT_FORMATS: ExportFormat[] = [
-  {
-    id: 'pdf',
-    label: 'PDF Document',
-    description: 'High-quality print layout with measurements',
-    icon: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-        <rect x="4" y="2" width="16" height="20" rx="2" stroke="currentColor" strokeWidth="1.5" />
-        <path d="M8 7h8M8 11h8M8 15h5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-      </svg>
-    ),
-  },
-  {
-    id: 'png',
-    label: 'PNG Image',
-    description: 'Raster image for presentations and sharing',
-    icon: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-        <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="1.5" />
-        <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor" />
-        <path d="M21 15l-5-5L5 21" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
-      </svg>
-    ),
-  },
-  {
-    id: 'cad',
-    label: 'CAD (DXF)',
-    description: 'Vector format for AutoCAD and engineering tools',
-    icon: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-        <path d="M3 3h18v18H3V3z" stroke="currentColor" strokeWidth="1.5" />
-        <path d="M3 3l18 18M21 3L3 21" stroke="currentColor" strokeWidth="0.75" opacity="0.3" />
-        <path d="M12 3v18M3 12h18" stroke="currentColor" strokeWidth="0.75" opacity="0.3" />
-      </svg>
-    ),
-  },
-];
-
-export function ExportModal({ isOpen, onClose, projectName }: ExportModalProps) {
+export function ExportModal({
+  isOpen,
+  onClose,
+  projectName,
+  scenario,
+  tentDimensions,
+  braceColorMap,
+}: ExportModalProps) {
   const { t } = useTranslation();
-  const [selectedFormat, setSelectedFormat] = useState('pdf');
   const [isExporting, setIsExporting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
 
   // Handle open/close with native dialog
@@ -92,10 +60,26 @@ export function ExportModal({ isOpen, onClose, projectName }: ExportModalProps) 
 
   const handleExport = async () => {
     setIsExporting(true);
-    // Simulate export delay — real implementation connects to backend
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setIsExporting(false);
-    onClose();
+    setError(null);
+
+    try {
+      // Generate filename
+      const filename = generateExportFilename(scenario.name, tentDimensions);
+
+      // Wait a bit to ensure the hidden ExportView is rendered
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // Export the hidden view as PNG
+      await exportToPNG('export-view', filename);
+
+      // Close modal on success
+      onClose();
+    } catch (err) {
+      console.error('Export failed:', err);
+      setError(err instanceof Error ? err.message : 'Export failed. Please try again.');
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -127,27 +111,30 @@ export function ExportModal({ isOpen, onClose, projectName }: ExportModalProps) 
           </button>
         </div>
 
-        {/* Format options */}
-        <div className={styles.formats}>
-          {EXPORT_FORMATS.map((format) => (
-            <button
-              key={format.id}
-              className={`${styles.formatCard} ${selectedFormat === format.id ? styles.formatSelected : ''}`}
-              onClick={() => setSelectedFormat(format.id)}
-              type="button"
-              aria-pressed={selectedFormat === format.id}
-            >
-              <div className={styles.formatIcon}>{format.icon}</div>
-              <div className={styles.formatInfo}>
-                <span className={styles.formatLabel}>{format.label}</span>
-                <span className={styles.formatDesc}>{format.description}</span>
-              </div>
-              {/* Radio indicator */}
-              <div className={styles.radio}>
-                <div className={styles.radioInner} />
-              </div>
-            </button>
-          ))}
+        {/* Export description */}
+        <div className={styles.content}>
+          <p className={styles.description}>
+            Export your floor plan as a high-quality PNG image including the visualization,
+            used braces inventory, and all measurements.
+          </p>
+          {error && (
+            <div className={styles.error} role="alert">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <circle cx="10" cy="10" r="8" stroke="currentColor" strokeWidth="1.5" />
+                <path d="M10 6v4M10 14h.01" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+              <span>{error}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Hidden ExportView for capture */}
+        <div style={{ position: 'absolute', left: '-9999px', top: 0 }}>
+          <ExportView
+            scenario={scenario}
+            tentDimensions={tentDimensions}
+            braceColorMap={braceColorMap}
+          />
         </div>
 
         {/* Footer */}

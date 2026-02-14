@@ -119,6 +119,17 @@
   pointer-events: none;
 }
 
+.braceDimLabelOutside {
+  font-size: 9px;
+  font-family: $font-family;
+  fill: $text-secondary;
+  font-weight: 600;
+  pointer-events: none;
+  paint-order: stroke fill;
+  stroke: rgba(255, 255, 255, 0.8);
+  stroke-width: 2px;
+}
+
 .gapDimLabel {
   font-size: 8px;
   font-family: $font-family;

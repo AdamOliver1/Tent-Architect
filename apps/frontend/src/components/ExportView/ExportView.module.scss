@@ -1,0 +1,196 @@
+.exportView {
+  width: 1200px;
+  background: #FFFFFF;
+  padding: 40px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.header {
+  margin-bottom: 32px;
+  text-align: center;
+  border-bottom: 2px solid #E5E7EB;
+  padding-bottom: 24px;
+}
+
+.title {
+  font-size: 32px;
+  font-weight: 600;
+  color: #1F2937;
+  margin: 0 0 8px 0;
+}
+
+.subtitle {
+  font-size: 18px;
+  color: #6B7280;
+  margin: 0;
+}
+
+.svg {
+  display: block;
+  margin: 0 auto 32px;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+}
+
+.setbackLabel {
+  font-size: 11px;
+  font-weight: 600;
+  fill: #5A6462;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.measureLabel {
+  font-size: 13px;
+  font-weight: 600;
+  fill: #5A6462;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.braceDimLabel {
+  font-size: 10px;
+  font-weight: 600;
+  fill: #FFFFFF;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  pointer-events: none;
+}
+
+.braceDimLabelOutside {
+  font-size: 10px;
+  font-weight: 600;
+  fill: #374151;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  pointer-events: none;
+  paint-order: stroke fill;
+  stroke: rgba(255, 255, 255, 0.9);
+  stroke-width: 2px;
+}
+
+.legend {
+  margin-bottom: 32px;
+  padding: 20px;
+  background: #F9FAFB;
+  border-radius: 8px;
+  border: 1px solid #E5E7EB;
+}
+
+.legendTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1F2937;
+  margin: 0 0 12px 0;
+}
+
+.legendItems {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #4B5563;
+}
+
+.legendSwatch {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.inventory {
+  margin-bottom: 32px;
+  padding: 20px;
+  background: #F9FAFB;
+  border-radius: 8px;
+  border: 1px solid #E5E7EB;
+}
+
+.inventoryTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1F2937;
+  margin: 0 0 16px 0;
+}
+
+.braceList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 12px;
+}
+
+.braceItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: #FFFFFF;
+  border-radius: 6px;
+  border: 1px solid #E5E7EB;
+}
+
+.braceSwatch {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.braceSize {
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+  flex: 1;
+}
+
+.braceCount {
+  font-size: 14px;
+  font-weight: 600;
+  color: #6B7280;
+}
+
+.measurements {
+  padding: 20px;
+  background: #F9FAFB;
+  border-radius: 8px;
+  border: 1px solid #E5E7EB;
+}
+
+.measurementsTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1F2937;
+  margin: 0 0 16px 0;
+}
+
+.measurementGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.measurementItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background: #FFFFFF;
+  border-radius: 6px;
+  border: 1px solid #E5E7EB;
+}
+
+.measurementLabel {
+  font-size: 14px;
+  color: #6B7280;
+}
+
+.measurementValue {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1F2937;
+}

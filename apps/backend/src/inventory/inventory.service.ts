@@ -9,6 +9,7 @@ export const DEFAULT_BRACES: Brace[] = [
   { length: 2.0, width: 1.0, quantity: Infinity },
   { length: 0.5, width: 2.0, quantity: Infinity },
   { length: 0.6, width: 2.44, quantity: Infinity },
+  { length: 0.4, width: 2.0, quantity: Infinity },
 ];
 
 /**

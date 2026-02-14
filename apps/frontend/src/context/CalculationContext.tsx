@@ -35,6 +35,7 @@ const defaultInventory: Inventory = {
     { length: 2.0, width: 1.0, quantity: 1000, color: '#4A3272' },
     { length: 0.5, width: 2.0, quantity: 1000, color: '#8B4513' },
     { length: 0.6, width: 2.44, quantity: 1000, color: '#1B4F6B' },
+    { length: 0.4, width: 2.0, quantity: 1000, color: '#D2691E' },
   ],
   rails: [
     { length: 1.0, quantity: 1000 },

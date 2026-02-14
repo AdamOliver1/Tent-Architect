@@ -90,104 +90,36 @@
   }
 }
 
-// ── Format selection ──
-.formats {
-  display: flex;
-  flex-direction: column;
-  gap: $spacing-sm;
-  padding: 0 $spacing-xl;
+// ── Content ──
+.content {
+  padding: 0 $spacing-xl $spacing-lg;
 }
 
-.formatCard {
-  display: flex;
-  align-items: center;
-  gap: $spacing-md;
-  width: 100%;
-  padding: $spacing-lg;
-  background: $surface-color;
-  border: 1.5px solid $border-light;
-  border-radius: $radius-xl;
-  cursor: pointer;
-  text-align: left;
-  transition: all $transition-normal;
-
-  &:hover {
-    border-color: $primary-light;
-    background: $primary-muted;
-  }
-
-  &.formatSelected {
-    border-color: $primary-color;
-    background: $primary-muted;
-    box-shadow: 0 0 0 1px $primary-color;
-  }
-}
-
-.formatIcon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
-  border-radius: $radius-lg;
-  background: $background-color;
+.description {
+  font-size: $font-sm;
   color: $text-secondary;
-  flex-shrink: 0;
-  transition: all $transition-normal;
-
-  .formatSelected & {
-    background: rgba($primary-color, 0.12);
-    color: $primary-color;
-  }
+  line-height: 1.6;
+  margin: 0;
 }
 
-.formatInfo {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: $spacing-2xs;
-}
-
-.formatLabel {
-  font-size: $font-md;
-  font-weight: 600;
-  color: $text-color;
-}
-
-.formatDesc {
-  font-size: $font-xs;
-  color: $text-muted;
-  line-height: 1.4;
-}
-
-// ── Radio indicator ──
-.radio {
-  width: 20px;
-  height: 20px;
-  border: 2px solid $border-color;
-  border-radius: 50%;
+.error {
   display: flex;
   align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  transition: all $transition-normal;
+  gap: $spacing-sm;
+  padding: $spacing-md;
+  margin-top: $spacing-md;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: $radius-lg;
+  color: #dc2626;
+  font-size: $font-sm;
 
-  .formatSelected & {
-    border-color: $primary-color;
+  svg {
+    flex-shrink: 0;
   }
-}
 
-.radioInner {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: transparent;
-  transition: all $transition-normal;
-  transform: scale(0);
-
-  .formatSelected & {
-    background: $primary-color;
-    transform: scale(1);
+  span {
+    flex: 1;
   }
 }
 

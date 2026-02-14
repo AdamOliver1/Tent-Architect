@@ -4,6 +4,7 @@
   "description": "NestJS backend for Tent Floor Planner calculation engine",
   "main": "dist/main.js",
   "scripts": {
+    "dev": "nest build && nest start --watch",
     "build": "rm -rf dist *.tsbuildinfo && nest build",
     "start": "nest build && nest start",
     "start:dev": "nest build && nest start --watch",
