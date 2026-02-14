@@ -6,13 +6,6 @@ import { InventoryEditor } from '../../components/InventoryEditor';
 import { Button } from '../../components/Button';
 import styles from './DashboardPage.module.scss';
 
-// Example recent projects (would come from persistence layer)
-const recentProjects = [
-  { id: 1, name: 'Wedding Marquee', dimensions: '30m × 15m', date: 'Jan 28, 2026', columns: 12 },
-  { id: 2, name: 'Festival Stage Tent', dimensions: '50m × 20m', date: 'Jan 15, 2026', columns: 18 },
-  { id: 3, name: 'Corporate Event', dimensions: '25m × 10m', date: 'Dec 20, 2025', columns: 8 },
-];
-
 export function DashboardPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -137,66 +130,9 @@ export function DashboardPage() {
           </div>
         </section>
 
-        {/* ── Recent Projects ── */}
+        {/* ── Recent Projects — In Development ── */}
         <section className={styles.recentSection}>
-          <div className={styles.sectionHeader}>
-            <div className={styles.sectionIcon} aria-hidden="true">
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                <rect x="3" y="3" width="14" height="14" rx="2" stroke="currentColor" strokeWidth="1.5" />
-                <path d="M3 8h14" stroke="currentColor" strokeWidth="1.5" />
-                <path d="M8 8v9" stroke="currentColor" strokeWidth="1.5" />
-              </svg>
-            </div>
-            <div>
-              <h2 className={styles.sectionTitle}>{t('dashboard.recentProjects')}</h2>
-              <p className={styles.sectionDesc}>{t('dashboard.recentProjectsDesc')}</p>
-            </div>
-          </div>
-
-          <div className={styles.projectGrid}>
-            {recentProjects.map((project) => (
-              <button
-                key={project.id}
-                className={styles.projectCard}
-                type="button"
-                aria-label={`Open ${project.name}`}
-              >
-                {/* Mini floor plan preview */}
-                <div className={styles.projectPreview} aria-hidden="true">
-                  <svg viewBox="0 0 120 80" fill="none" className={styles.projectPreviewSvg}>
-                    <rect x="10" y="10" width="100" height="60" rx="2" stroke="currentColor" strokeWidth="1" opacity="0.3" />
-                    <rect x="16" y="16" width="18" height="48" rx="1" fill="currentColor" opacity="0.12" />
-                    <rect x="38" y="16" width="18" height="48" rx="1" fill="currentColor" opacity="0.12" />
-                    <rect x="60" y="16" width="18" height="48" rx="1" fill="currentColor" opacity="0.12" />
-                    <rect x="82" y="16" width="22" height="48" rx="1" fill="currentColor" opacity="0.08" />
-                  </svg>
-                </div>
-                <div className={styles.projectInfo}>
-                  <h3 className={styles.projectName}>{project.name}</h3>
-                  <span className={styles.projectDims}>{project.dimensions}</span>
-                </div>
-                <div className={styles.projectMeta}>
-                  <span>{project.date}</span>
-                  <span className={styles.projectDot}>·</span>
-                  <span>{project.columns} columns</span>
-                </div>
-              </button>
-            ))}
-
-            {/* Empty template card */}
-            <button
-              className={`${styles.projectCard} ${styles.projectCardEmpty}`}
-              type="button"
-              aria-label="Start from template"
-            >
-              <div className={styles.emptyIcon} aria-hidden="true">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                  <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                </svg>
-              </div>
-              <span className={styles.emptyText}>{t('dashboard.startFromTemplate')}</span>
-            </button>
-          </div>
+          <p className={styles.recentInDev}>{t('dashboard.recentProjectsInDev')}</p>
         </section>
       </div>
     </div>

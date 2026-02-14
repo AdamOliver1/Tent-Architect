@@ -1,3 +1,11 @@
+export interface BracePlacement {
+  braceLength: number;
+  braceWidth: number;
+  rotated: boolean;
+  fillLength: number;
+  count: number;
+}
+
 export interface ColumnType {
   braceLength: number;
   braceWidth: number;
@@ -6,6 +14,8 @@ export interface ColumnType {
   fillLength: number;
   braceCount: number;
   gap: number;
+  mixed?: boolean;
+  bracePlacements?: BracePlacement[];
 }
 
 export interface Column {

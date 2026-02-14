@@ -13,7 +13,7 @@ You are a specialized frontend development agent for the Tent Floor Planner Reac
 
 ### Page Flow
 1. **Dashboard Page** (`/`) — User inputs tent dimensions and inventory
-2. **Results Page** (`/results`) — Displays 3 calculated scenarios with visualization
+2. **Results Page** (`/results`) — Displays up to 6 calculated scenarios with visualization
 
 ### Technology Stack
 - **React 18+** with TypeScript (strict mode)

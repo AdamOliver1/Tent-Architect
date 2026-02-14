@@ -26,13 +26,13 @@ src/
 ## API Endpoints
 - `POST /calculate` — Run floor plan calculation
   - Input: tent dimensions, inventory
-  - Output: 3 scenarios with placements
+  - Output: up to 6 Pareto-optimal scenarios with placements
 
 ## Algorithm Details
 1. Generate column types from braces (width, gap per usable length)
 2. DP search for column combinations
 3. Track Pareto-optimal solutions
-4. Return top 3 scenarios
+4. Return up to 6 Pareto-optimal scenarios
 
 ## Commands
 - `npm run start:dev` — Dev server with watch

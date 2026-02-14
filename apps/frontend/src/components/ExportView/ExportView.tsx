@@ -40,28 +40,39 @@ function darkenColor(hex: string, amount: number): string {
   return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`;
 }
 
-export function ExportView({ scenario, tentDimensions, braceColorMap }: ExportViewProps) {
+export function ExportView({ scenario, tentDimensions: _tentDimensions, braceColorMap }: ExportViewProps) {
+  void _tentDimensions; // Props kept for interface compatibility; using scenario dimensions instead
+  // Use scenario dimensions (which match the animation) instead of user-input dimensions
+  // The backend may swap width/length; scenario.tentWidth and scenario.tentLength
+  // reflect the actual orientation used in the animation
+  const displayWidth = scenario.tentWidth;
+  const displayLength = scenario.tentLength;
+
   // Asymmetric setbacks
   const setbackLeft = scenario.setback; // rail-end
   const setbackRight = scenario.setback; // rail-end
   const setbackTop = scenario.openEndSetbackStart; // open-end start
   const setbackBottom = scenario.openEndSetbackEnd; // open-end end
 
-  // Fixed dimensions for consistent export quality
-  const EXPORT_WIDTH = 1200;
-  const SVG_WIDTH = EXPORT_WIDTH;
-  const SVG_HEIGHT = 800;
+  // Adaptive dimensions to match animation orientation exactly
+  // Extra margin for dimension labels + setback labels that extend beyond the tent boundary
+  const LABEL_MARGIN = 120; // Space for dimension lines, setback labels, arrows
   const padding = 80;
-  const availableWidth = SVG_WIDTH - 2 * padding;
-  const availableHeight = SVG_HEIGHT - 2 * padding;
-  const scaleX = availableWidth / tentDimensions.width;
-  const scaleY = availableHeight / tentDimensions.length;
-  const scale = Math.min(scaleX, scaleY);
 
-  const tentDisplayWidth = tentDimensions.width * scale;
-  const tentDisplayHeight = tentDimensions.length * scale;
-  const offsetX = (SVG_WIDTH - tentDisplayWidth) / 2;
-  const offsetY = (SVG_HEIGHT - tentDisplayHeight) / 2;
+  // Calculate tent display size first, then determine SVG size to fit everything
+  const targetTentWidth = 1000; // Target tent width in pixels (leaving room for labels)
+  const baseScale = targetTentWidth / displayWidth;
+  const scale = Math.min(baseScale, 150); // Cap scale like the animation
+
+  const tentDisplayWidth = displayWidth * scale;
+  const tentDisplayHeight = displayLength * scale;
+
+  // SVG dimensions: tent + padding on all sides + extra margin for labels
+  const SVG_WIDTH = tentDisplayWidth + padding * 2 + LABEL_MARGIN; // Extra right for length dim + setback labels
+  const SVG_HEIGHT = tentDisplayHeight + padding * 2 + LABEL_MARGIN; // Extra bottom for width dim + setback labels
+
+  const offsetX = padding + LABEL_MARGIN / 2; // Center with label room on left
+  const offsetY = padding + LABEL_MARGIN / 2; // Top padding with label room
 
   const toX = (x: number) => offsetX + x * scale;
   const toY = (y: number) => offsetY + y * scale;
@@ -100,24 +111,31 @@ export function ExportView({ scenario, tentDimensions, braceColorMap }: ExportVi
     };
   };
 
-  // Aggregate brace usage from scenario columns (reusing ScenarioInventoryModal logic)
+  // Aggregate brace usage from scenario columns (handles mixed columns)
   const braceUsage = useMemo(() => {
     const usage = new Map<string, { length: number; width: number; count: number; color: string }>();
     for (const col of scenario.columns) {
       const ct = col.columnType;
-      const key = `${ct.braceLength}×${ct.braceWidth}`;
-      const existing = usage.get(key);
-      if (existing) {
-        existing.count += ct.braceCount;
+      if (ct.bracePlacements) {
+        for (const bp of ct.bracePlacements) {
+          const key = `${bp.braceLength}×${bp.braceWidth}`;
+          const existing = usage.get(key);
+          if (existing) {
+            existing.count += bp.count;
+          } else {
+            const color = braceColorMap[key] || COLORS.brace;
+            usage.set(key, { length: bp.braceLength, width: bp.braceWidth, count: bp.count, color });
+          }
+        }
       } else {
-        const colorKey = `${ct.braceLength}×${ct.braceWidth}`;
-        const color = braceColorMap[colorKey] || COLORS.brace;
-        usage.set(key, {
-          length: ct.braceLength,
-          width: ct.braceWidth,
-          count: ct.braceCount,
-          color,
-        });
+        const key = `${ct.braceLength}×${ct.braceWidth}`;
+        const existing = usage.get(key);
+        if (existing) {
+          existing.count += ct.braceCount;
+        } else {
+          const color = braceColorMap[key] || COLORS.brace;
+          usage.set(key, { length: ct.braceLength, width: ct.braceWidth, count: ct.braceCount, color });
+        }
       }
     }
     return Array.from(usage.values());
@@ -159,14 +177,14 @@ export function ExportView({ scenario, tentDimensions, braceColorMap }: ExportVi
     }
 
     if (side === 'bottom') {
-      const lineX = toX(tentDimensions.width) + OUTSIDE_OFFSET;
-      const y1 = toY(tentDimensions.length - value);
-      const y2 = toY(tentDimensions.length);
+      const lineX = toX(displayWidth) + OUTSIDE_OFFSET;
+      const y1 = toY(displayLength - value);
+      const y2 = toY(displayLength);
       const midY = (y1 + y2) / 2;
       return (
         <g key={side}>
-          <line x1={toX(tentDimensions.width)} y1={y1} x2={lineX} y2={y1} stroke={LINE_COLOR} strokeWidth={1} />
-          <line x1={toX(tentDimensions.width)} y1={y2} x2={lineX} y2={y2} stroke={LINE_COLOR} strokeWidth={1} />
+          <line x1={toX(displayWidth)} y1={y1} x2={lineX} y2={y1} stroke={LINE_COLOR} strokeWidth={1} />
+          <line x1={toX(displayWidth)} y1={y2} x2={lineX} y2={y2} stroke={LINE_COLOR} strokeWidth={1} />
           <line x1={lineX} y1={y1 + 4} x2={lineX} y2={y2 - 4}
             stroke={LINE_COLOR} strokeWidth={2}
             markerStart="url(#arrowUp)" markerEnd="url(#arrowDown)" />
@@ -201,14 +219,14 @@ export function ExportView({ scenario, tentDimensions, braceColorMap }: ExportVi
     }
 
     if (side === 'right') {
-      const lineY = toY(tentDimensions.length) + OUTSIDE_OFFSET;
-      const x1 = toX(tentDimensions.width - value);
-      const x2 = toX(tentDimensions.width);
+      const lineY = toY(displayLength) + OUTSIDE_OFFSET;
+      const x1 = toX(displayWidth - value);
+      const x2 = toX(displayWidth);
       const midX = (x1 + x2) / 2;
       return (
         <g key={side}>
-          <line x1={x1} y1={toY(tentDimensions.length)} x2={x1} y2={lineY} stroke={LINE_COLOR} strokeWidth={1} />
-          <line x1={x2} y1={toY(tentDimensions.length)} x2={x2} y2={lineY} stroke={LINE_COLOR} strokeWidth={1} />
+          <line x1={x1} y1={toY(displayLength)} x2={x1} y2={lineY} stroke={LINE_COLOR} strokeWidth={1} />
+          <line x1={x2} y1={toY(displayLength)} x2={x2} y2={lineY} stroke={LINE_COLOR} strokeWidth={1} />
           <line x1={x1 + 4} y1={lineY} x2={x2 - 4} y2={lineY}
             stroke={LINE_COLOR} strokeWidth={2}
             markerStart="url(#arrowLeft)" markerEnd="url(#arrowRight)" />
@@ -230,7 +248,7 @@ export function ExportView({ scenario, tentDimensions, braceColorMap }: ExportVi
       <div className={styles.header}>
         <h1 className={styles.title}>{scenario.name}</h1>
         <p className={styles.subtitle}>
-          {formatDim(tentDimensions.length)}m × {formatDim(tentDimensions.width)}m
+          {formatDim(displayLength)}m × {formatDim(displayWidth)}m
         </p>
       </div>
 
@@ -248,8 +266,8 @@ export function ExportView({ scenario, tentDimensions, braceColorMap }: ExportVi
         <rect
           x={toX(0)}
           y={toY(0)}
-          width={toS(tentDimensions.width)}
-          height={toS(tentDimensions.length)}
+          width={toS(displayWidth)}
+          height={toS(displayLength)}
           fill="rgba(255,255,255,0.3)"
           stroke={COLORS.tentBorder}
           strokeWidth={2}
@@ -268,20 +286,20 @@ export function ExportView({ scenario, tentDimensions, braceColorMap }: ExportVi
           {/* Top strip (open-end start) */}
           {setbackTop > 0.001 && (
             <g>
-              <rect x={toX(0)} y={toY(0)} width={toS(tentDimensions.width)} height={toS(setbackTop)}
+              <rect x={toX(0)} y={toY(0)} width={toS(displayWidth)} height={toS(setbackTop)}
                 fill={COLORS.setbackFill} />
-              <rect x={toX(0)} y={toY(0)} width={toS(tentDimensions.width)} height={toS(setbackTop)}
+              <rect x={toX(0)} y={toY(0)} width={toS(displayWidth)} height={toS(setbackTop)}
                 fill="url(#setbackHatch)" />
             </g>
           )}
           {/* Bottom strip (open-end end) */}
           {setbackBottom > 0.001 && (
             <g>
-              <rect x={toX(0)} y={toY(tentDimensions.length - setbackBottom)}
-                width={toS(tentDimensions.width)} height={toS(setbackBottom)}
+              <rect x={toX(0)} y={toY(displayLength - setbackBottom)}
+                width={toS(displayWidth)} height={toS(setbackBottom)}
                 fill={COLORS.setbackFill} />
-              <rect x={toX(0)} y={toY(tentDimensions.length - setbackBottom)}
-                width={toS(tentDimensions.width)} height={toS(setbackBottom)}
+              <rect x={toX(0)} y={toY(displayLength - setbackBottom)}
+                width={toS(displayWidth)} height={toS(setbackBottom)}
                 fill="url(#setbackHatch)" />
             </g>
           )}
@@ -289,21 +307,21 @@ export function ExportView({ scenario, tentDimensions, braceColorMap }: ExportVi
           {setbackLeft > 0.001 && (
             <g>
               <rect x={toX(0)} y={toY(setbackTop)}
-                width={toS(setbackLeft)} height={toS(tentDimensions.length - setbackTop - setbackBottom)}
+                width={toS(setbackLeft)} height={toS(displayLength - setbackTop - setbackBottom)}
                 fill={COLORS.setbackFill} />
               <rect x={toX(0)} y={toY(setbackTop)}
-                width={toS(setbackLeft)} height={toS(tentDimensions.length - setbackTop - setbackBottom)}
+                width={toS(setbackLeft)} height={toS(displayLength - setbackTop - setbackBottom)}
                 fill="url(#setbackHatch)" />
             </g>
           )}
           {/* Right strip (rail-end) */}
           {setbackRight > 0.001 && (
             <g>
-              <rect x={toX(tentDimensions.width - setbackRight)} y={toY(setbackTop)}
-                width={toS(setbackRight)} height={toS(tentDimensions.length - setbackTop - setbackBottom)}
+              <rect x={toX(displayWidth - setbackRight)} y={toY(setbackTop)}
+                width={toS(setbackRight)} height={toS(displayLength - setbackTop - setbackBottom)}
                 fill={COLORS.setbackFill} />
-              <rect x={toX(tentDimensions.width - setbackRight)} y={toY(setbackTop)}
-                width={toS(setbackRight)} height={toS(tentDimensions.length - setbackTop - setbackBottom)}
+              <rect x={toX(displayWidth - setbackRight)} y={toY(setbackTop)}
+                width={toS(setbackRight)} height={toS(displayLength - setbackTop - setbackBottom)}
                 fill="url(#setbackHatch)" />
             </g>
           )}
@@ -311,8 +329,8 @@ export function ExportView({ scenario, tentDimensions, braceColorMap }: ExportVi
           {/* Inner usable border */}
           <rect
             x={toX(setbackLeft)} y={toY(setbackTop)}
-            width={toS(tentDimensions.width - setbackLeft - setbackRight)}
-            height={toS(tentDimensions.length - setbackTop - setbackBottom)}
+            width={toS(displayWidth - setbackLeft - setbackRight)}
+            height={toS(displayLength - setbackTop - setbackBottom)}
             fill="none" stroke={COLORS.setbackLine} strokeWidth={1.5} strokeDasharray="6 3" rx={2}
           />
         </g>
@@ -323,15 +341,15 @@ export function ExportView({ scenario, tentDimensions, braceColorMap }: ExportVi
             x={toX(setbackLeft)}
             y={toY(setbackTop)}
             width={toS(RAIL_THICKNESS)}
-            height={toS(tentDimensions.length - setbackTop - setbackBottom)}
+            height={toS(displayLength - setbackTop - setbackBottom)}
             fill={COLORS.rail}
             rx={1}
           />
           <rect
-            x={toX(tentDimensions.width - setbackRight - RAIL_THICKNESS)}
+            x={toX(displayWidth - setbackRight - RAIL_THICKNESS)}
             y={toY(setbackTop)}
             width={toS(RAIL_THICKNESS)}
-            height={toS(tentDimensions.length - setbackTop - setbackBottom)}
+            height={toS(displayLength - setbackTop - setbackBottom)}
             fill={COLORS.rail}
             rx={1}
           />
@@ -345,59 +363,113 @@ export function ExportView({ scenario, tentDimensions, braceColorMap }: ExportVi
           const braceBorderColor = darkenColor(braceColor, 16);
           const labelProps = getBraceLabelProps(columnType);
 
+          // Helper: get color by brace dimensions
+          const getColorByDims = (bl: number, bw: number) => {
+            const key = `${bl}×${bw}`;
+            return braceColorMap[key] || COLORS.brace;
+          };
+
           return (
             <g key={colIdx}>
-              {Array.from({ length: columnType.braceCount }, (_, i) => {
-                const bx = toX(position);
-                const by = toY(setbackTop + i * columnType.fillLength);
-                const bw = toS(columnType.columnWidth);
-                const bh = toS(columnType.fillLength);
-                return (
-                  <g key={i}>
-                    <rect
-                      x={bx}
-                      y={by}
-                      width={bw}
-                      height={bh}
-                      fill={braceColor}
-                      stroke={braceBorderColor}
-                      strokeWidth={1}
-                      rx={3}
-                    />
-                    {/* Show label on first brace - inside or outside based on fit */}
-                    {i === 0 && labelProps.show && (
-                      labelProps.outside ? (
-                        // Label above brace when too small
-                        <text
-                          x={bx + bw / 2}
-                          y={by - 4}
-                          textAnchor="middle"
-                          className={styles.braceDimLabelOutside}
-                          style={{ fontSize: `${labelProps.fontSize}px` }}
-                        >
-                          {formatDim(columnType.braceLength)}×{formatDim(columnType.braceWidth)}
-                        </text>
-                      ) : (
-                        // Label inside brace
-                        <text
-                          x={bx + bw / 2}
-                          y={by + bh / 2 + 4}
-                          textAnchor="middle"
-                          className={styles.braceDimLabel}
-                          style={{ fontSize: `${labelProps.fontSize}px` }}
-                        >
-                          {formatDim(columnType.braceLength)}×{formatDim(columnType.braceWidth)}
-                        </text>
-                      )
-                    )}
-                  </g>
-                );
-              })}
+              {columnType.bracePlacements ? (
+                // Mixed column: render each placement group sequentially
+                (() => {
+                  let yOffset = 0;
+                  let braceIndex = 0;
+                  return columnType.bracePlacements.map((bp, pIdx) => {
+                    const bpColor = getColorByDims(bp.braceLength, bp.braceWidth);
+                    const bpBorderColor = darkenColor(bpColor, 16);
+                    const elements = Array.from({ length: bp.count }, (_, i) => {
+                      const bx = toX(position);
+                      const by = toY(setbackTop + yOffset);
+                      const bw = toS(columnType.columnWidth);
+                      const bh = toS(bp.fillLength);
+                      yOffset += bp.fillLength;
+                      const isFirst = braceIndex === 0;
+                      braceIndex++;
+                      return (
+                        <g key={`${pIdx}-${i}`}>
+                          <rect
+                            x={bx} y={by} width={bw} height={bh}
+                            fill={bpColor}
+                            stroke={bpBorderColor} strokeWidth={1} rx={3}
+                          />
+                          {isFirst && labelProps.show && (
+                            labelProps.outside ? (
+                              <text x={bx + bw / 2} y={by - 4} textAnchor="middle"
+                                className={styles.braceDimLabelOutside}
+                                style={{ fontSize: `${labelProps.fontSize}px` }}>
+                                Mixed
+                              </text>
+                            ) : (
+                              <text x={bx + bw / 2} y={by + bh / 2 + 4} textAnchor="middle"
+                                className={styles.braceDimLabel}
+                                style={{ fontSize: `${labelProps.fontSize}px` }}>
+                                {formatDim(bp.braceLength)}×{formatDim(bp.braceWidth)}
+                              </text>
+                            )
+                          )}
+                        </g>
+                      );
+                    });
+                    return elements;
+                  });
+                })()
+              ) : (
+                // Pure column: render uniform braces
+                Array.from({ length: columnType.braceCount }, (_, i) => {
+                  const bx = toX(position);
+                  const by = toY(setbackTop + i * columnType.fillLength);
+                  const bw = toS(columnType.columnWidth);
+                  const bh = toS(columnType.fillLength);
+                  return (
+                    <g key={i}>
+                      <rect
+                        x={bx}
+                        y={by}
+                        width={bw}
+                        height={bh}
+                        fill={braceColor}
+                        stroke={braceBorderColor}
+                        strokeWidth={1}
+                        rx={3}
+                      />
+                      {i === 0 && labelProps.show && (
+                        labelProps.outside ? (
+                          <text
+                            x={bx + bw / 2}
+                            y={by - 4}
+                            textAnchor="middle"
+                            className={styles.braceDimLabelOutside}
+                            style={{ fontSize: `${labelProps.fontSize}px` }}
+                          >
+                            {formatDim(columnType.braceLength)}×{formatDim(columnType.braceWidth)}
+                          </text>
+                        ) : (
+                          <text
+                            x={bx + bw / 2}
+                            y={by + bh / 2 + 4}
+                            textAnchor="middle"
+                            className={styles.braceDimLabel}
+                            style={{ fontSize: `${labelProps.fontSize}px` }}
+                          >
+                            {formatDim(columnType.braceLength)}×{formatDim(columnType.braceWidth)}
+                          </text>
+                        )
+                      )}
+                    </g>
+                  );
+                })
+              )}
 
               {/* Gap */}
               {columnType.gap > 0.001 && (() => {
                 const gx = toX(position);
-                const gy = toY(setbackTop + columnType.braceCount * columnType.fillLength);
+                // Calculate total filled length (different for mixed vs pure)
+                const filledLength = columnType.bracePlacements
+                  ? columnType.bracePlacements.reduce((sum, bp) => sum + bp.fillLength * bp.count, 0)
+                  : columnType.braceCount * columnType.fillLength;
+                const gy = toY(setbackTop + filledLength);
                 const gw = toS(columnType.columnWidth);
                 const gh = toS(columnType.gap);
                 return (
@@ -428,17 +500,17 @@ export function ExportView({ scenario, tentDimensions, braceColorMap }: ExportVi
           {/* Width (bottom) */}
           <line
             x1={toX(0)}
-            y1={toY(tentDimensions.length) + 24}
-            x2={toX(tentDimensions.width)}
-            y2={toY(tentDimensions.length) + 24}
+            y1={toY(displayLength) + 24}
+            x2={toX(displayWidth)}
+            y2={toY(displayLength) + 24}
             stroke={COLORS.dimLine}
             strokeWidth={1}
             markerStart="url(#arrowLeft)"
             markerEnd="url(#arrowRight)"
           />
           <rect
-            x={toX(tentDimensions.width / 2) - 30}
-            y={toY(tentDimensions.length) + 15}
+            x={toX(displayWidth / 2) - 30}
+            y={toY(displayLength) + 15}
             width={60}
             height={20}
             rx={6}
@@ -447,28 +519,28 @@ export function ExportView({ scenario, tentDimensions, braceColorMap }: ExportVi
             strokeWidth={0.5}
           />
           <text
-            x={toX(tentDimensions.width / 2)}
-            y={toY(tentDimensions.length) + 29}
+            x={toX(displayWidth / 2)}
+            y={toY(displayLength) + 29}
             textAnchor="middle"
             className={styles.measureLabel}
           >
-            {formatDim(tentDimensions.width)}m
+            {formatDim(displayWidth)}m
           </text>
 
           {/* Length (right) */}
           <line
-            x1={toX(tentDimensions.width) + 24}
+            x1={toX(displayWidth) + 24}
             y1={toY(0)}
-            x2={toX(tentDimensions.width) + 24}
-            y2={toY(tentDimensions.length)}
+            x2={toX(displayWidth) + 24}
+            y2={toY(displayLength)}
             stroke={COLORS.dimLine}
             strokeWidth={1}
             markerStart="url(#arrowUp)"
             markerEnd="url(#arrowDown)"
           />
           <rect
-            x={toX(tentDimensions.width) + 14}
-            y={toY(tentDimensions.length / 2) - 10}
+            x={toX(displayWidth) + 14}
+            y={toY(displayLength / 2) - 10}
             width={60}
             height={20}
             rx={6}
@@ -477,12 +549,12 @@ export function ExportView({ scenario, tentDimensions, braceColorMap }: ExportVi
             strokeWidth={0.5}
           />
           <text
-            x={toX(tentDimensions.width) + 44}
-            y={toY(tentDimensions.length / 2) + 4}
+            x={toX(displayWidth) + 44}
+            y={toY(displayLength / 2) + 4}
             textAnchor="middle"
             className={styles.measureLabel}
           >
-            {formatDim(tentDimensions.length)}m
+            {formatDim(displayLength)}m
           </text>
         </g>
 

@@ -60,7 +60,7 @@ export function Header() {
               opacity="0.5"
             />
           </svg>
-          <span className={styles.logoText}>Tent Architect</span>
+          <span className={styles.logoText}>KatsBros / האחים כץ</span>
         </button>
 
         {/* Right section */}

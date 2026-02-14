@@ -15,10 +15,12 @@ export async function exportToPNG(elementId: string, filename: string): Promise<
 
   try {
     // Capture the element with high quality settings
+    // Use the actual element width to prevent clipping
+    const elementWidth = element.scrollWidth || element.offsetWidth || 1400;
     const canvas = await html2canvas(element, {
       scale: 2,              // 2x resolution for sharp output
       backgroundColor: '#FFFFFF',
-      windowWidth: 1200,     // Fixed width for consistency
+      windowWidth: Math.max(elementWidth + 40, 1400), // Ensure full content is captured
       logging: false,        // Disable console logs
       useCORS: true,         // Enable cross-origin images if needed
     });

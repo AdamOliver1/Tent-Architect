@@ -14,6 +14,37 @@ function formatNum(n: number): string {
   return n.toFixed(3).replace(/\.?0+$/, '');
 }
 
+// Translate scenario names from backend English to current locale
+// Backend names: "Best Width Fit", "Minimum Gaps 2", "Least Rails", "Balanced", "Option 7", etc.
+function translateScenarioName(name: string, t: (key: string) => string): string {
+  // Known base names from the backend
+  const baseNames = [
+    'Best Width Fit',
+    'Least Brace Kinds',
+    'Minimum Gaps',
+    'Least Rails',
+    'Least Braces',
+    'Biggest Braces',
+    'Balanced',
+    'Option',
+  ];
+
+  for (const base of baseNames) {
+    if (name === base) {
+      return t(`results.scenarioNames.${base}`);
+    }
+    // Handle numbered variants like "Minimum Gaps 2", "Balanced 3", "Option 7"
+    if (name.startsWith(base + ' ')) {
+      const suffix = name.slice(base.length + 1);
+      const translated = t(`results.scenarioNames.${base}`);
+      return `${translated} ${suffix}`;
+    }
+  }
+
+  // Fallback: return original name if no match
+  return name;
+}
+
 export function ResultsPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -27,6 +58,7 @@ export function ResultsPage() {
     column: Column;
     index: number;
     rect: DOMRect;
+    mousePos?: { x: number; y: number };
   } | null>(null);
   const popupRef = useRef<HTMLDivElement>(null);
   const vizRef = useRef<HTMLDivElement>(null);
@@ -55,12 +87,12 @@ export function ResultsPage() {
   }, [selectedIndex]);
 
   const handleColumnClick = useCallback(
-    (column: Column, index: number, rect: DOMRect) => {
+    (column: Column, index: number, rect: DOMRect, mousePos?: { x: number; y: number }) => {
       if (selectedColumn?.index === index) {
         setSelectedColumn(null);
         return;
       }
-      setSelectedColumn({ column, index, rect });
+      setSelectedColumn({ column, index, rect, mousePos });
     },
     [selectedColumn]
   );
@@ -84,20 +116,43 @@ export function ResultsPage() {
 
   const selectedScenario = results[selectedIndex];
 
-  // Calculate popup position relative to viz container
+  // Calculate popup position relative to viz container (near mouse cursor)
   const getPopupStyle = (): React.CSSProperties => {
     if (!selectedColumn || !vizRef.current) return { display: 'none' };
     const vizRect = vizRef.current.getBoundingClientRect();
-    const colRect = selectedColumn.rect;
+    const popupWidth = 260;
+    const popupHeight = 200;
+    const offset = 16; // px from mouse
 
+    if (selectedColumn.mousePos) {
+      // Position near the mouse cursor
+      let left = selectedColumn.mousePos.x - vizRect.left + offset;
+      let top = selectedColumn.mousePos.y - vizRect.top + offset;
+
+      // If popup would overflow right, place it to the left of the mouse
+      if (left + popupWidth > vizRect.width) {
+        left = selectedColumn.mousePos.x - vizRect.left - popupWidth - offset;
+      }
+      // If popup would overflow bottom, place it above the mouse
+      if (top + popupHeight > vizRect.height) {
+        top = selectedColumn.mousePos.y - vizRect.top - popupHeight - offset;
+      }
+      if (left < 0) left = 8;
+      if (top < 0) top = 8;
+
+      return { left, top };
+    }
+
+    // Fallback to column rect positioning
+    const colRect = selectedColumn.rect;
     let left = colRect.right - vizRect.left + 12;
     let top = colRect.top - vizRect.top;
 
-    if (left + 260 > vizRect.width) {
-      left = colRect.left - vizRect.left - 272;
+    if (left + popupWidth > vizRect.width) {
+      left = colRect.left - vizRect.left - popupWidth - 12;
     }
     if (top < 0) top = 8;
-    if (top + 200 > vizRect.height) top = vizRect.height - 200;
+    if (top + popupHeight > vizRect.height) top = vizRect.height - popupHeight;
 
     return { left, top };
   };
@@ -108,7 +163,7 @@ export function ResultsPage() {
       <div className={styles.toolbar}>
         <div className={styles.toolbarLeft}>
           <div className={styles.scenarioMeta}>
-            <h1 className={styles.scenarioName}>{selectedScenario.name}</h1>
+            <h1 className={styles.scenarioName}>{translateScenarioName(selectedScenario.name, t)}</h1>
             <span className={styles.tentDims}>
               {tent.length}m × {tent.width}m
             </span>
@@ -224,30 +279,35 @@ export function ResultsPage() {
                     {formatNum(selectedColumn.column.columnType.braceWidth)}m
                   </dd>
                 </div>
+                {/* Show secondary brace types in mixed columns */}
+                {selectedColumn.column.columnType.bracePlacements &&
+                  selectedColumn.column.columnType.bracePlacements
+                    .filter(
+                      (bp) =>
+                        bp.braceLength !== selectedColumn.column.columnType.braceLength ||
+                        bp.braceWidth !== selectedColumn.column.columnType.braceWidth
+                    )
+                    .map((bp, idx) => (
+                      <div key={idx} className={styles.popupRow}>
+                        <dt>{t('results.braceSize')} #{idx + 2}</dt>
+                        <dd>
+                          {formatNum(bp.braceLength)}m × {formatNum(bp.braceWidth)}m
+                          {bp.count > 0 && ` (×${bp.count})`}
+                        </dd>
+                      </div>
+                    ))}
                 <div className={styles.popupRow}>
                   <dt>{t('results.braces')}</dt>
                   <dd>{selectedColumn.column.columnType.braceCount}</dd>
                 </div>
-                {selectedColumn.column.columnType.rotated && (
-                  <div className={styles.popupRow}>
-                    <dt>{t('results.orientation')}</dt>
-                    <dd>{t('results.rotated')}</dd>
-                  </div>
-                )}
                 <div className={styles.popupRow}>
                   <dt>{t('results.columnWidth')}</dt>
                   <dd>{formatNum(selectedColumn.column.columnType.columnWidth)}m</dd>
                 </div>
-                <div className={styles.popupRow}>
-                  <dt>{t('results.fillLength')}</dt>
-                  <dd>{formatNum(selectedColumn.column.columnType.fillLength)}m</dd>
+                <div className={`${styles.popupRow} ${selectedColumn.column.columnType.gap > 0.001 ? styles.popupRowGap : ''}`}>
+                  <dt>{t('results.gap')}</dt>
+                  <dd>{formatNum(selectedColumn.column.columnType.gap)}m</dd>
                 </div>
-                {selectedColumn.column.columnType.gap > 0.001 && (
-                  <div className={`${styles.popupRow} ${styles.popupRowGap}`}>
-                    <dt>{t('results.gap')}</dt>
-                    <dd>{formatNum(selectedColumn.column.columnType.gap)}m</dd>
-                  </div>
-                )}
               </dl>
             </div>
           )}

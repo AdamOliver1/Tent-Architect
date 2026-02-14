@@ -13,6 +13,7 @@
     "newProjectDesc": "قم بتعيين أبعاد الخيمة والمخزون لإنشاء سيناريوهات محسنة.",
     "recentProjects": "المشاريع الأخيرة",
     "recentProjectsDesc": "تابع من حيث توقفت أو ابدأ من قالب.",
+    "recentProjectsInDev": "المشاريع الأخيرة - قيد التطوير",
     "startFromTemplate": "ابدأ من قالب"
   },
   "language": {
@@ -68,13 +69,24 @@
     "fillLength": "طول التعبئة",
     "gap": "فجوة",
     "totalGap": "إجمالي الفجوة",
+    "maxGap": "أقصى فجوة",
     "braceKinds": "أنواع الدعامات",
     "openEndSetbackStart": "بداية الطرف المفتوح",
     "openEndSetbackEnd": "نهاية الطرف المفتوح",
     "railEndSetback": "تراجع القضيب",
     "inventoryDetails": "تفاصيل المخزون",
     "inventoryBtn": "المخزون",
-    "close": "إغلاق تفاصيل العمود"
+    "close": "إغلاق تفاصيل العمود",
+    "scenarioNames": {
+      "Best Width Fit": "أفضل ملاءمة للعرض",
+      "Least Brace Kinds": "أقل أنواع دعامات",
+      "Minimum Gaps": "أقل فجوات",
+      "Least Rails": "أقل قضبان",
+      "Least Braces": "أقل دعامات",
+      "Biggest Braces": "أكبر دعامات",
+      "Balanced": "متوازن",
+      "Option": "خيار"
+    }
   },
   "export": {
     "title": "تصدير مخطط الأرضية",

@@ -36,6 +36,11 @@ src/
 │   │   ├── ScenarioInventoryModal.tsx  # Inventory detail modal per scenario
 │   │   ├── ScenarioInventoryModal.module.scss
 │   │   └── index.ts
+│   ├── ExportView/
+│   │   ├── ExportView.tsx            # SVG export view (adaptive sizing, uses scenario dimensions)
+│   │   └── ExportView.module.scss
+│   ├── Header/
+│   │   └── Header.tsx                # Sticky header with logo ("KatsBros / האחים כץ"), language switcher
 │   └── Button/
 │       ├── Button.tsx              # Reusable button component
 │       └── Button.module.scss
@@ -43,6 +48,8 @@ src/
 │   └── CalculationContext.tsx      # App state management (exports useCalculation hook)
 ├── services/
 │   └── api.ts                      # API client for backend
+├── utils/
+│   └── export.ts                   # PNG export utility (html2canvas)
 ├── styles/
 │   ├── global.scss                 # Global styles, CSS reset
 │   └── variables.scss              # Colors, spacing, breakpoints
@@ -80,7 +87,8 @@ src/
   - Brace colors from inventory color picker shown on canvas
   - Asymmetric setback visualization (rail-end vs open-end per side)
   - Legend shows brace type colors + sizes
-  - Inventory modal shows full breakdown: brace types, setbacks, gaps
+  - Inventory modal shows brace types, setbacks, gaps, and used rails list
+  - Scenario names translated on frontend via `scenarioNames` i18n keys
 
 ## Routing
 Use React Router v6, wrapped in CalculationProvider:

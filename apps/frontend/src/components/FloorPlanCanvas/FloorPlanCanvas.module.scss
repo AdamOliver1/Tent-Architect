@@ -2,12 +2,13 @@
 
 .container {
   width: 100%;
-  height: 100%;
+  height: auto; // Auto height to fit content
   min-height: 500px;
   position: relative;
   border-radius: $radius-xl;
   overflow: hidden;
   background: $canvas-background;
+  align-self: flex-start; // Stick to top of parent
 
   // Subtle crosshatch texture to differentiate canvas from UI
   &::before {
@@ -35,7 +36,7 @@
 .svg {
   display: block;
   width: 100%;
-  height: 100%;
+  height: auto; // Use the height from the SVG element itself
   position: relative;
   z-index: 1;
   transition: transform 120ms ease-out;
@@ -172,13 +173,12 @@
   flex-shrink: 0;
 }
 
-// ── Zoom bar (floating, bottom-center) ──
+// ── Zoom bar (floating, top-right) ──
 
 .zoomBar {
   position: absolute;
-  bottom: $spacing-lg;
-  left: 50%;
-  transform: translateX(-50%);
+  top: $spacing-lg;
+  right: $spacing-lg;
   z-index: $z-controls;
 }
 
@@ -201,8 +201,7 @@
 .hint {
   position: absolute;
   top: $spacing-lg;
-  left: 50%;
-  transform: translateX(-50%);
+  left: $spacing-lg;
   z-index: $z-controls;
   font-size: $font-xs;
   font-weight: 500;

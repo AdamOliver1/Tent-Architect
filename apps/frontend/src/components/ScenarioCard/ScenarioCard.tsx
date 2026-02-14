@@ -9,6 +9,22 @@ interface ScenarioCardProps {
   onInventoryClick: () => void;
 }
 
+// Translate scenario names from backend English to current locale
+function translateScenarioName(name: string, t: (key: string) => string): string {
+  const baseNames = [
+    'Best Width Fit', 'Least Brace Kinds', 'Minimum Gaps',
+    'Least Rails', 'Least Braces', 'Biggest Braces', 'Balanced', 'Option',
+  ];
+  for (const base of baseNames) {
+    if (name === base) return t(`results.scenarioNames.${base}`);
+    if (name.startsWith(base + ' ')) {
+      const suffix = name.slice(base.length + 1);
+      return `${t(`results.scenarioNames.${base}`)} ${suffix}`;
+    }
+  }
+  return name;
+}
+
 export function ScenarioCard({
   scenario,
   isSelected,
@@ -25,6 +41,12 @@ export function ScenarioCard({
     0
   );
 
+  // Calculate max gap from all columns
+  const maxGap = scenario.columns.reduce(
+    (max, col) => Math.max(max, col.columnType.gap || 0),
+    0
+  );
+
   return (
     <button
       className={`${styles.card} ${isSelected ? styles.selected : ''}`}
@@ -36,7 +58,7 @@ export function ScenarioCard({
       <div className={styles.indicator} aria-hidden="true" />
 
       <div className={styles.body}>
-        <h4 className={styles.name}>{scenario.name}</h4>
+        <h4 className={styles.name}>{translateScenarioName(scenario.name, t)}</h4>
 
         <div className={styles.metrics}>
           <div className={styles.metric}>
@@ -45,8 +67,18 @@ export function ScenarioCard({
           </div>
           <div className={styles.metricDivider} />
           <div className={styles.metric}>
+            <span className={styles.metricValue}>{scenario.columns.length}</span>
+            <span className={styles.metricLabel}>{t('results.columns')}</span>
+          </div>
+          <div className={styles.metricDivider} />
+          <div className={styles.metric}>
             <span className={styles.metricValue}>{braceCount}</span>
             <span className={styles.metricLabel}>{t('results.braces')}</span>
+          </div>
+          <div className={styles.metricDivider} />
+          <div className={styles.metric}>
+            <span className={styles.metricValue}>{formatNumber(maxGap)}</span>
+            <span className={styles.metricLabel}>{t('results.maxGap')}</span>
           </div>
         </div>
 

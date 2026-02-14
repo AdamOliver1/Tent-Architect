@@ -5,7 +5,7 @@ import styles from './FloorPlanCanvas.module.scss';
 
 interface FloorPlanCanvasProps {
   scenario: Scenario;
-  onColumnClick?: (column: Column, index: number, rect: DOMRect) => void;
+  onColumnClick?: (column: Column, index: number, rect: DOMRect, mousePos?: { x: number; y: number }) => void;
   selectedColumnIndex?: number | null;
   braceColorMap?: Record<string, string>;
 }
@@ -122,20 +122,25 @@ export function FloorPlanCanvas({
   const layout = useMemo(() => {
     const padding = 80;
     const svgWidth = containerWidth;
-    const svgHeight = Math.max(500, containerHeight);
+
+    // Calculate scale based on width, ensuring content fits well
     const availableWidth = svgWidth - 2 * padding;
-    const availableHeight = svgHeight - 2 * padding;
-    const scaleX = availableWidth / scenario.tentWidth;
-    const scaleY = availableHeight / scenario.tentLength;
-    const scale = Math.min(scaleX, scaleY);
+    const baseScale = availableWidth / scenario.tentWidth;
+
+    // Use width-based scale, limit to reasonable maximum
+    const scale = Math.min(baseScale, 150); // Cap scale to prevent excessive sizing
 
     const tentDisplayWidth = scenario.tentWidth * scale;
     const tentDisplayHeight = scenario.tentLength * scale;
+
+    // SVG height is exactly what we need for content + padding + space for labels
+    const svgHeight = tentDisplayHeight + padding * 2 + 100; // +100 for dimension labels and margin
+
     const offsetX = (svgWidth - tentDisplayWidth) / 2;
-    const offsetY = (svgHeight - tentDisplayHeight) / 2;
+    const offsetY = padding; // Fixed to top
 
     return { padding, svgWidth, svgHeight, scale, offsetX, offsetY, tentDisplayWidth, tentDisplayHeight };
-  }, [containerWidth, containerHeight, scenario.tentWidth, scenario.tentLength]);
+  }, [containerWidth, scenario.tentWidth, scenario.tentLength]);
 
   const toX = useCallback((x: number) => layout.offsetX + x * layout.scale, [layout]);
   const toY = useCallback((y: number) => layout.offsetY + y * layout.scale, [layout]);
@@ -155,22 +160,7 @@ export function FloorPlanCanvas({
     setPanOffset({ x: 0, y: 0 });
   }, []);
 
-  // Wheel zoom
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-
-    const handleWheel = (e: WheelEvent) => {
-      if (e.ctrlKey || e.metaKey) {
-        e.preventDefault();
-        const delta = e.deltaY > 0 ? -0.1 : 0.1;
-        setZoom((z) => Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, z + delta)));
-      }
-    };
-
-    el.addEventListener('wheel', handleWheel, { passive: false });
-    return () => el.removeEventListener('wheel', handleWheel);
-  }, []);
+  // Scroll zoom disabled — use zoom buttons instead
 
   // Pan handlers
   const handlePanStart = useCallback((e: React.MouseEvent) => {
@@ -200,7 +190,8 @@ export function FloorPlanCanvas({
     (column: Column, index: number, e: React.MouseEvent<SVGGElement> | React.KeyboardEvent<SVGGElement>) => {
       if (!onColumnClick) return;
       const rect = (e.currentTarget as SVGGElement).getBoundingClientRect();
-      onColumnClick(column, index, rect);
+      const mousePos = 'clientX' in e ? { x: e.clientX, y: e.clientY } : undefined;
+      onColumnClick(column, index, rect, mousePos);
     },
     [onColumnClick]
   );
@@ -215,10 +206,19 @@ export function FloorPlanCanvas({
     [handleColumnClick]
   );
 
-  // Get brace color for a column
+  // Get brace color for a column (or specific brace type)
   const getBraceColor = useCallback(
     (col: Column) => {
       const key = `${col.columnType.braceLength}×${col.columnType.braceWidth}`;
+      return braceColorMap[key] || COLORS.brace;
+    },
+    [braceColorMap]
+  );
+
+  // Get brace color by dimensions
+  const getColorByDims = useCallback(
+    (braceLength: number, braceWidth: number) => {
+      const key = `${braceLength}×${braceWidth}`;
       return braceColorMap[key] || COLORS.brace;
     },
     [braceColorMap]
@@ -265,18 +265,31 @@ export function FloorPlanCanvas({
     });
   }, [scenario.columns, toS, zoom]);
 
-  // Build legend entries from distinct brace types in scenario
+  // Build legend entries from distinct brace types in scenario (including mixed)
   const legendEntries = useMemo(() => {
     const seen = new Map<string, { length: number; width: number; color: string }>();
     for (const col of scenario.columns) {
       const ct = col.columnType;
-      const key = `${ct.braceLength}×${ct.braceWidth}`;
-      if (!seen.has(key)) {
-        seen.set(key, {
-          length: ct.braceLength,
-          width: ct.braceWidth,
-          color: braceColorMap[key] || COLORS.brace,
-        });
+      if (ct.bracePlacements) {
+        for (const bp of ct.bracePlacements) {
+          const key = `${bp.braceLength}×${bp.braceWidth}`;
+          if (!seen.has(key)) {
+            seen.set(key, {
+              length: bp.braceLength,
+              width: bp.braceWidth,
+              color: braceColorMap[key] || COLORS.brace,
+            });
+          }
+        }
+      } else {
+        const key = `${ct.braceLength}×${ct.braceWidth}`;
+        if (!seen.has(key)) {
+          seen.set(key, {
+            length: ct.braceLength,
+            width: ct.braceWidth,
+            color: braceColorMap[key] || COLORS.brace,
+          });
+        }
       }
     }
     return Array.from(seen.values());
@@ -427,7 +440,7 @@ export function FloorPlanCanvas({
         className={styles.svg}
         style={{
           transform: `scale(${zoom}) translate(${panOffset.x / zoom}px, ${panOffset.y / zoom}px)`,
-          transformOrigin: 'center center',
+          transformOrigin: 'top center',
         }}
         role="img"
         aria-label={`Floor plan for ${scenario.tentLength}m by ${scenario.tentWidth}m tent, ${scenario.name}`}
@@ -563,61 +576,97 @@ export function FloorPlanCanvas({
               onMouseLeave={() => setHoveredColumn(null)}
               role={onColumnClick ? 'button' : undefined}
               tabIndex={onColumnClick ? 0 : undefined}
-              aria-label={`Column ${colIdx + 1}: ${columnType.braceCount} braces of ${columnType.braceLength}m x ${columnType.braceWidth}m${columnType.gap > 0.001 ? `, gap ${formatDim(columnType.gap)}m` : ''}`}
+              aria-label={`Column ${colIdx + 1}: ${columnType.braceCount} braces${columnType.mixed ? ' (mixed)' : ` of ${columnType.braceLength}m x ${columnType.braceWidth}m`}${columnType.gap > 0.001 ? `, gap ${formatDim(columnType.gap)}m` : ''}`}
             >
-              {Array.from({ length: columnType.braceCount }, (_, i) => {
-                const bx = toX(position);
-                const by = toY(setbackTop + i * columnType.fillLength);
-                const bw = toS(columnType.columnWidth);
-                const bh = toS(columnType.fillLength);
-                return (
-                  <g key={i}>
-                    <rect
-                      x={bx}
-                      y={by}
-                      width={bw}
-                      height={bh}
-                      fill={isHovered || isSelected ? braceHoverColor : braceColor}
-                      stroke={braceBorderColor}
-                      strokeWidth={1}
-                      rx={3}
-                      className={styles.braceRect}
-                    />
-                    {i === 0 && labelProps.show && (
-                      labelProps.outside ? (
-                        // Label above brace when it doesn't fit inside
-                        <text
-                          x={bx + bw / 2}
-                          y={by - 4}
-                          textAnchor="middle"
-                          className={styles.braceDimLabelOutside}
-                          style={{ fontSize: `${labelProps.fontSize}px` }}
-                        >
-                          {formatDim(columnType.braceLength)}×{formatDim(columnType.braceWidth)}
-                        </text>
-                      ) : (
-                        // Label inside brace
-                        <text
-                          x={bx + bw / 2}
-                          y={by + bh / 2 + 4}
-                          textAnchor="middle"
-                          className={styles.braceDimLabel}
-                          style={{ fontSize: `${labelProps.fontSize}px` }}
-                        >
-                          {formatDim(columnType.braceLength)}×{formatDim(columnType.braceWidth)}
-                        </text>
-                      )
-                    )}
-                  </g>
-                );
-              })}
+              {columnType.bracePlacements ? (
+                // Mixed column: render each placement group sequentially
+                (() => {
+                  let yOffset = 0;
+                  let braceIndex = 0;
+                  return columnType.bracePlacements.map((bp, pIdx) => {
+                    const bpColor = getColorByDims(bp.braceLength, bp.braceWidth);
+                    const bpHoverColor = lightenColor(bpColor, 16);
+                    const bpBorderColor = darkenColor(bpColor, 16);
+                    const elements = Array.from({ length: bp.count }, (_, i) => {
+                      const bx = toX(position);
+                      const by = toY(setbackTop + yOffset);
+                      const bw = toS(columnType.columnWidth);
+                      const bh = toS(bp.fillLength);
+                      yOffset += bp.fillLength;
+                      const isFirst = braceIndex === 0;
+                      braceIndex++;
+                      return (
+                        <g key={`${pIdx}-${i}`}>
+                          <rect
+                            x={bx} y={by} width={bw} height={bh}
+                            fill={isHovered || isSelected ? bpHoverColor : bpColor}
+                            stroke={bpBorderColor} strokeWidth={1} rx={3}
+                            className={styles.braceRect}
+                          />
+                          {isFirst && labelProps.show && (
+                            labelProps.outside ? (
+                              <text x={bx + bw / 2} y={by - 4} textAnchor="middle"
+                                className={styles.braceDimLabelOutside}
+                                style={{ fontSize: `${labelProps.fontSize}px` }}>
+                                Mixed
+                              </text>
+                            ) : (
+                              <text x={bx + bw / 2} y={by + bh / 2 + 4} textAnchor="middle"
+                                className={styles.braceDimLabel}
+                                style={{ fontSize: `${labelProps.fontSize}px` }}>
+                                {formatDim(bp.braceLength)}×{formatDim(bp.braceWidth)}
+                              </text>
+                            )
+                          )}
+                        </g>
+                      );
+                    });
+                    return elements;
+                  });
+                })()
+              ) : (
+                // Pure column: render uniform braces
+                Array.from({ length: columnType.braceCount }, (_, i) => {
+                  const bx = toX(position);
+                  const by = toY(setbackTop + i * columnType.fillLength);
+                  const bw = toS(columnType.columnWidth);
+                  const bh = toS(columnType.fillLength);
+                  return (
+                    <g key={i}>
+                      <rect
+                        x={bx} y={by} width={bw} height={bh}
+                        fill={isHovered || isSelected ? braceHoverColor : braceColor}
+                        stroke={braceBorderColor} strokeWidth={1} rx={3}
+                        className={styles.braceRect}
+                      />
+                      {i === 0 && labelProps.show && (
+                        labelProps.outside ? (
+                          <text x={bx + bw / 2} y={by - 4} textAnchor="middle"
+                            className={styles.braceDimLabelOutside}
+                            style={{ fontSize: `${labelProps.fontSize}px` }}>
+                            {formatDim(columnType.braceLength)}×{formatDim(columnType.braceWidth)}
+                          </text>
+                        ) : (
+                          <text x={bx + bw / 2} y={by + bh / 2 + 4} textAnchor="middle"
+                            className={styles.braceDimLabel}
+                            style={{ fontSize: `${labelProps.fontSize}px` }}>
+                            {formatDim(columnType.braceLength)}×{formatDim(columnType.braceWidth)}
+                          </text>
+                        )
+                      )}
+                    </g>
+                  );
+                })
+              )}
 
               {/* Gap */}
               {columnType.gap > 0.001 && (() => {
                 const gx = toX(position);
-                const gy = toY(
-                  setbackTop + columnType.braceCount * columnType.fillLength
-                );
+                // Calculate total filled length (different for mixed vs pure)
+                const filledLength = columnType.bracePlacements
+                  ? columnType.bracePlacements.reduce((sum, bp) => sum + bp.fillLength * bp.count, 0)
+                  : columnType.braceCount * columnType.fillLength;
+                const gy = toY(setbackTop + filledLength);
                 const gw = toS(columnType.columnWidth);
                 const gh = toS(columnType.gap);
                 return (
@@ -761,7 +810,7 @@ export function FloorPlanCanvas({
         </div>
       </div>
 
-      {/* ── Zoom controls (bottom-center, floating) ── */}
+      {/* ── Zoom controls (top-center, floating) ── */}
       <div className={styles.zoomBar}>
         <ZoomControls
           zoom={zoom}
@@ -827,7 +876,7 @@ export function FloorPlanCanvas({
       {/* ── Pan hint ── */}
       {onColumnClick && zoom === 1 && (
         <div className={styles.hint}>
-          Click a column for details · Ctrl+Scroll to zoom
+          Click a column for details
         </div>
       )}
     </div>

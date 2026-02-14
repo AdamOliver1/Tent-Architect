@@ -13,112 +13,173 @@ You are a specialized agent with deep expertise in the tent floor planning optim
 
 **Input:**
 - Tent dimensions: Length (L) × Width (W) in meters
-- Brace inventory: List of panel sizes will be recieved from the user, for example: (2.45×1.22m, 2×1m, 0.5×2m, 0.6×2.44m)
-- Rail inventory: Beam lengths will be recieved from the user, for example: (1m, 2m, 3m, 4m, 6m, 5m, 7.36m)
+- Brace inventory: List of panel sizes (e.g., 2.45×1.22m, 2×1m, 0.5×2m, 0.6×2.44m)
+- Rail inventory: Beam lengths (e.g., 1m, 2m, 3m, 4m, 5m, 6m, 7.36m)
 
 **Output:**
-- 3-6 optimal floor layouts on the Pareto front, preffered more than less. 
+- Up to 20 named floor layout scenarios, at least 6 when possible
 
-**Constraints:**
-- Minimum setback: 0.10m from all tent 
-- Maximum setback: 0.20m from all tent edges
-- Rail thickness: 0.05m (5cm)
-- Rails run parallel to tent length or parallel to tent width, doesn't matter which option, depends on the best scenario.
-- Braces can be rotated 90°
-- each column in the floor can have a different size of brace inside it, but in a column there will be the same braces.
+**Constants:**
+- `MIN_SETBACK = 0.08m` — Minimum setback from tent edges
+- `MAX_SETBACK = 0.25m` — Maximum setback from tent edges
+- `RAIL_THICKNESS = 0.05m` — Rail beam thickness
+- `PRECISION = 0.01m` — DP discretization (1cm)
+- `MAX_COLUMN_GAP = 0.39m` — Maximum allowed gap per column
+- `MAX_SCENARIOS = 20` — Maximum scenarios returned
+- `MAX_PARETO_SIZE = 50` — Maximum Pareto set size per DP width state
 
-## Two Competing Objectives
+## Axis Rules
 
-### Objective A: Rail End Fit (Minimize Setback Increase)
-- Rail ends are the sides PARALLEL to rails
-- Must be symmetric — no bins allowed
-- Excess width → increase setback, DOESN'T have to be equally on both sides, MUST be between 0.10m - 0.25m (preferly up to 0.20m).
-- Formula: `setback_excess = usable_width - [(k+1) × 0.05 + Σ(column_widths)]`
-- Where `usable_width = tent_width - 2 × 0.15` and `k` = number of columns
+### Rail End (Parallel to rails — width direction)
+- Symmetric setback — no bins allowed
+- Excess width → increase setback equally on both sides
+- Setback must be in [0.08m, 0.25m]
 
-### Objective B: Open End Fit (Minimize Total Gaps)
-- Open ends are sides PERPENDICULAR to rails
-- in each column you can have a gap at the end of the column (because each column can have a different size of brace inside, so the gap don't have to be the same sizes.)
+### Open End (Perpendicular to rails — length direction)
+- Bins allowed inside columns to cover gaps
+- Asymmetric: start and end setbacks can differ
+- Each column can have a different gap size
+- Open-end setback optimized via sweep (Step 2.5)
 
+## Algorithm Pipeline
 
-## Algorithm Steps
+### Step 1: Dual Orientation
+Both orientations are tried (L×W and W×L). Results from both are pooled before scenario selection.
 
-### Step 1: Generate Column Types
-For each brace type and each rotation (0°, 90°):
-```
-column_width = brace dimension perpendicular to rails
-fill_length = brace dimension parallel to rails
-usable_length = tent_length - 2 × setback (each side of the tent can have a different setback!)
+### Step 2: Generate Column Types (`generateColumnTypes`)
+For each brace type, generate:
+- **Pure columns**: Single brace type, normal or rotated 90°
+  ```
+  column_width = brace dimension perpendicular to rails
+  fill_length = brace dimension parallel to rails
+  n_braces = floor(usable_length / fill_length)
+  gap = usable_length - n_braces × fill_length
+  ```
+- **Mixed columns**: Multiple brace types sharing the same `columnWidth`
+  - Solved via bounded knapsack DP (`solveMixedFill`) in centimeter units
+  - Binary splitting for bounded knapsack efficiency
+  - Maximizes fill, tie-breaks on fewer braces (prefer larger braces)
+  - Dominated pure types are pruned (worse gap AND more braces than mixed)
 
-n_braces = floor(usable_length / fill_length)
-gap = usable_length - n_braces × fill_length
+### Step 3: DP Column Combination Search (`dpColumnSearch`)
+- Discretize width to centimeters
+- Initial state: one rail width (first rail before any column)
+- State: `Map<widthCm, DPSolution[]>` — Pareto set at each width
+- Transition: try adding each column type + rail to current width
+- **Pareto dominance** on 3 criteria: `totalGap`, `distinctBraceTypes`, `columns.length`
+- **Brace inventory tracking**: `braceUsage` map ensures quantities aren't exceeded
+- Terminal states: widths within `[targetCm - maxSetbackIncreaseCm, targetCm]`
+- BFS-like processing order (smallest width first)
 
-column_type = {
-  width: column_width,
-  gap: gap,
-  n_braces: n_braces,
-  brace_type: original brace,
-  rotated: boolean
+### Step 4: Open-End Optimization (`optimizeOpenEndSetbacks`)
+For each DP solution, sweep `usable_length` from `railLength - 2×MAX_SETBACK` to `railLength - 2×MIN_SETBACK` in 1cm steps:
+- Recompute gap for each column at each usable_length
+- Mixed columns are re-solved via `solveMixedFill` at each step
+- Pick usable_length that minimizes total gap
+- Split remaining setback equally across start/end
+
+### Step 5: Filtering
+1. **Setback filter**: Discard solutions where any setback is outside [0.08, 0.25]
+2. **Gap filter**: Discard solutions where any column gap > 0.39m (fallback: keep all valid if filter removes everything)
+
+### Step 6: Named Scenario Selection (`selectNamedScenarios`)
+From the full solution pool (both orientations), select scenarios by category:
+
+**Core (1 each):**
+1. **Best Width Fit** — min `setbackExcess`, tie-break: min `totalGap`
+2. **Least Brace Kinds** — min `distinctBraceTypes`, tie-break: min `totalGap`
+
+**Variants (up to 3 each, deduplicated by object reference):**
+3. **Minimum Gaps / Minimum Gaps 2 / 3** — sorted by `totalGap` ascending, tie-break: `setbackExcess`
+4. **Least Rails / 2 / 3** — fewest columns (and +1 variants), sorted by `totalGap`
+5. **Least Braces / 2** — fewest total brace count, sorted by `totalGap`
+6. **Biggest Braces / 2 / 3** — max largest-brace coverage, sorted by area then coverage then gap
+
+**Balanced:**
+7. **Balanced** — knee-point: minimum normalized Euclidean distance from origin on (setback, gap) plane
+
+**Fill:**
+8. Remaining slots filled with evenly-spaced diverse solutions from pool, named `Balanced 2`, `Balanced 3`, etc.
+9. If still < 6 scenarios, fill with leftover solutions sorted by gap, named `Option N`
+
+## Key Implementation Details
+
+### Mixed Fill Knapsack (`solveMixedFill`)
+- Bounded knapsack DP with binary splitting
+- Options sorted by descending `fillLength` (largest braces processed first)
+- Tracks `dpFill[w]` (max fill) and `dpCount[w]` (min braces for that fill)
+- Backtracking reconstructs actual brace counts
+- Returns `BracePlacement[]` sorted by fillLength descending
+
+### Pareto State Management (`addSolutionToState`)
+- Dominance check on `(totalGap, distinctBraceTypes, columns.length)`
+- Non-dominated solutions kept; dominated ones removed
+- Capped at `MAX_PARETO_SIZE = 50` per width state (sorted by gap, keep best)
+
+### Rail Construction (`constructRails`)
+- Greedy: longest available rail first
+- Two rails constructed (one per side)
+- Rails can extend beyond usable area if needed
+
+## Types
+
+### DPSolution (internal)
+```typescript
+interface DPSolution {
+  setbackExcess: number;        // Excess setback beyond minimum
+  totalGap: number;             // Sum of gaps across all columns (linear meters)
+  columns: ColumnType[];        // Selected columns
+  braceUsage?: Record<string, number>;  // "LxW" → count
+  distinctBraceTypes: number;
+  optimizedUsableLength?: number;       // From open-end sweep
+  openEndSetbackStart?: number;
+  openEndSetbackEnd?: number;
 }
 ```
 
-### Step 2: DP Column Combination Search
-- Discretize width to centimeters for DP table
-- State: `current_total_width → Set<(setback_excess, total_gap, column_list)>`
-- Keep only Pareto-optimal states at each width
-
-**Transition:**
-```
-for each state at width W:
-  for each column_type C:
-    new_width = W + C.width + 0.05  # Include rail
-    new_setback_excess = calculate_setback_excess(new_width)
-    new_total_gap = state.total_gap + C.gap
-
-    add (new_setback_excess, new_total_gap, state.columns + [C])
-    to states[new_width], keeping Pareto-optimal only
+### ColumnType
+```typescript
+interface ColumnType {
+  braceLength: number; braceWidth: number; rotated: boolean;
+  columnWidth: number; fillLength: number; braceCount: number; gap: number;
+  mixed?: boolean;
+  bracePlacements?: BracePlacement[];  // For mixed columns
+}
 ```
 
-### Step 3: Pareto Front Extraction
-From all terminal states (valid configurations):
-1. Collect all solutions
-2. Remove dominated solutions (A dominates B if A is better in both objectives)
-3. Select 3 scenarios:
-   - **Best Width Fit**: Minimum setback_excess
-   - **Minimum Gaps**: Minimum total_gap
-   - **Balanced (Knee Point)**: Maximum distance from the line connecting the two extremes
-
-### Step 4: Rail Construction (Secondary)
-After column layout is determined:
-- Calculate required rail length for each rail position
-- Use coin-change variant to combine 1m + 5m + 7.36m rails
-- Minimize cuts and waste
-
-## Edge Cases to Handle
-
-1. **Perfect fit**: Gap = 0 → no bins needed, highlight this
-2. **Equal objectives**: Multiple solutions with same values → pick any consistently
-3. no good solution, choose the least bad ones and make sure the result isn't bigger that the tent itself by mistake.
-
-## Validation Checklist
-
+### Scenario (output)
+```typescript
+interface Scenario {
+  name: string; setback: number;
+  openEndSetbackStart: number; openEndSetbackEnd: number;
+  totalGap: number;            // Gap area (gap × columnWidth per column)
+  columns: Column[]; rails: RailSegment[][];
+  usableWidth: number; usableLength: number;
+  tentLength: number; tentWidth: number;
+  distinctBraceTypes: number;
+}
+```
 
 ## Validation Checklist
 
 When implementing or debugging:
-- [ ] Setback is never less than 0.10m
+- [ ] Setback is never less than 0.08m or greater than 0.25m
 - [ ] Rail thickness (0.05m) counted between ALL columns and at edges
 - [ ] Total width = setback × 2 + (n+1) × rail + Σ(column_widths) ≤ tent_width
-- [ ] Gaps are non-negative
+- [ ] Gaps are non-negative and ≤ 0.39m per column
 - [ ] At least one brace fits in each column
-- [ ] Pareto front has no dominated solutions
-- [ ] Three distinct scenarios returned (or fewer if Pareto front is smaller)
+- [ ] Brace inventory quantities are respected
+- [ ] Mixed columns use `solveMixedFill` with correct backtracking
+- [ ] At least one "Minimum Gaps" scenario is always returned
+- [ ] Both orientations are tried for non-square tents
+- [ ] Columns are sorted by brace type + orientation in final output
 
 ## Code Locations
 
-- Algorithm implementation: `apps/backend/src/calculation/calculation.service.ts`
-- Types: `apps/backend/src/shared/types/`
-- Tests: `apps/backend/src/calculation/*.spec.ts`
+- Algorithm: `apps/backend/src/calculation/calculation.service.ts`
+- Types: `apps/backend/src/shared/types/scenario.types.ts`
+- Tests: `apps/backend/src/calculation/calculation.service.spec.ts`
+- DTOs: `apps/backend/src/calculation/dto/`
 
 ## Your Responsibilities
 

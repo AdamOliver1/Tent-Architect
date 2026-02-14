@@ -5,6 +5,7 @@
   display: flex;
   flex-direction: column;
   height: calc(100vh - 57px); // Account for header
+  min-height: 0; // Allow flex children to shrink
   overflow: hidden;
 }
 
@@ -86,6 +87,7 @@
   display: flex;
   flex: 1;
   overflow: hidden;
+  min-height: 0; // Critical: allows flex children to shrink below content size
 }
 
 // ── Side panel ──
@@ -95,12 +97,17 @@
   flex-direction: column;
   background: $surface-color;
   border-right: 1px solid $border-light;
+  
   transition: all $transition-smooth;
   flex-shrink: 0;
-  overflow-y: auto;
+  overflow: hidden; // Panel itself doesn't scroll; the panelList inside does
+  min-height: 0; // Critical: allows flex children to scroll instead of growing
+  // Height is constrained by .layout parent (flex row with overflow: hidden)
 }
 
 .panelOpen {
+  overflow-y: scroll;
+  height: 1300px;
   width: 300px;
   padding: $spacing-xl;
 
@@ -126,6 +133,7 @@
   align-items: center;
   justify-content: space-between;
   margin-bottom: $spacing-lg;
+  flex-shrink: 0;
 
   h2 {
     font-size: $font-md;
@@ -152,6 +160,22 @@
   flex-direction: column;
   gap: $spacing-md;
   flex: 1;
+  padding-right: $spacing-xs; // Space for scrollbar
+
+  // Custom scrollbar
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: rgba($text-muted, 0.2);
+    border-radius: 4px;
+  }
+  &::-webkit-scrollbar-thumb:hover {
+    background: rgba($text-muted, 0.4);
+  }
 }
 
 .panelStats {
@@ -160,6 +184,7 @@
   padding-top: $spacing-lg;
   margin-top: $spacing-lg;
   border-top: 1px solid $border-light;
+  flex-shrink: 0;
 }
 
 .stat {
@@ -188,8 +213,12 @@
 .canvasArea {
   flex: 1;
   position: relative;
-  overflow: hidden;
-  // The canvas fills the entire remaining space — expansive feel
+  overflow-y: auto; // Allow scrolling if content is too tall
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  // The canvas stays at the top and doesn't move
 }
 
 // ── Column detail popup ──

@@ -1,4 +1,20 @@
 /**
+ * Describes a single brace type placement within a mixed column
+ */
+export interface BracePlacement {
+  /** Original brace length in meters */
+  braceLength: number;
+  /** Original brace width in meters */
+  braceWidth: number;
+  /** Whether the brace is rotated 90 degrees */
+  rotated: boolean;
+  /** Length each brace fills in the column direction */
+  fillLength: number;
+  /** Number of this brace type used */
+  count: number;
+}
+
+/**
  * Describes a column type configuration
  * A column type defines how a particular brace can be used to create a column
  */
@@ -17,6 +33,10 @@ export interface ColumnType {
   braceCount: number;
   /** Remaining gap at open ends in meters */
   gap: number;
+  /** Whether this column uses mixed brace types */
+  mixed?: boolean;
+  /** Brace placements for mixed columns (undefined for pure columns) */
+  bracePlacements?: BracePlacement[];
 }
 
 /**

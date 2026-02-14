@@ -16,13 +16,30 @@ function formatNum(n: number): string {
   return n.toFixed(3).replace(/\.?0+$/, '');
 }
 
+// Translate scenario names from backend English to current locale
+function translateScenarioName(name: string, t: (key: string) => string): string {
+  const baseNames = [
+    'Best Width Fit', 'Least Brace Kinds', 'Minimum Gaps',
+    'Least Rails', 'Least Braces', 'Biggest Braces', 'Balanced', 'Option',
+  ];
+  for (const base of baseNames) {
+    if (name === base) return t(`results.scenarioNames.${base}`);
+    if (name.startsWith(base + ' ')) {
+      const suffix = name.slice(base.length + 1);
+      return `${t(`results.scenarioNames.${base}`)} ${suffix}`;
+    }
+  }
+  return name;
+}
+
 export function ScenarioInventoryModal({
   isOpen,
   onClose,
   scenario,
-  inventory,
+  inventory: _inventory,
   braceColorMap,
 }: ScenarioInventoryModalProps) {
+  void _inventory; // Props kept for interface compatibility; rails come from scenario.rails
   const { t } = useTranslation();
   const dialogRef = useRef<HTMLDialogElement>(null);
 
@@ -50,21 +67,39 @@ export function ScenarioInventoryModal({
 
   if (!isOpen) return null;
 
-  // Aggregate brace usage from scenario columns
+  // Aggregate brace usage from scenario columns (handles mixed columns)
   const braceUsage = new Map<string, { length: number; width: number; count: number; rotated: boolean }>();
   for (const col of scenario.columns) {
     const ct = col.columnType;
-    const key = `${ct.braceLength}×${ct.braceWidth}`;
-    const existing = braceUsage.get(key);
-    if (existing) {
-      existing.count += ct.braceCount;
+    if (ct.bracePlacements) {
+      // Mixed column: aggregate each placement type
+      for (const bp of ct.bracePlacements) {
+        const key = `${bp.braceLength}×${bp.braceWidth}`;
+        const existing = braceUsage.get(key);
+        if (existing) {
+          existing.count += bp.count;
+        } else {
+          braceUsage.set(key, {
+            length: bp.braceLength,
+            width: bp.braceWidth,
+            count: bp.count,
+            rotated: bp.rotated,
+          });
+        }
+      }
     } else {
-      braceUsage.set(key, {
-        length: ct.braceLength,
-        width: ct.braceWidth,
-        count: ct.braceCount,
-        rotated: ct.rotated,
-      });
+      const key = `${ct.braceLength}×${ct.braceWidth}`;
+      const existing = braceUsage.get(key);
+      if (existing) {
+        existing.count += ct.braceCount;
+      } else {
+        braceUsage.set(key, {
+          length: ct.braceLength,
+          width: ct.braceWidth,
+          count: ct.braceCount,
+          rotated: ct.rotated,
+        });
+      }
     }
   }
 
@@ -80,7 +115,7 @@ export function ScenarioInventoryModal({
         <div className={styles.header}>
           <div>
             <h2 className={styles.title}>{t('results.inventoryDetails')}</h2>
-            <p className={styles.subtitle}>{scenario.name}</p>
+            <p className={styles.subtitle}>{translateScenarioName(scenario.name, t)}</p>
           </div>
           <button
             className={styles.closeBtn}
@@ -167,29 +202,41 @@ export function ScenarioInventoryModal({
             </div>
           </div>
 
-          {/* Available inventory */}
-          {inventory && (
-            <div className={styles.section}>
-              <h3 className={styles.sectionTitle}>{t('inventory.title')}</h3>
-              <div className={styles.braceList}>
-                {inventory.braces.map((brace, i) => {
-                  const colorKey = `${brace.length}×${brace.width}`;
-                  const color = braceColorMap[colorKey] || '#5A7A6C';
-                  return (
-                    <div key={i} className={styles.braceItem}>
-                      <span className={styles.braceSwatch} style={{ backgroundColor: color }} />
+          {/* Used rails from scenario */}
+          {scenario.rails && scenario.rails.length > 0 && (() => {
+            // Aggregate rail segments by length across all rail tracks
+            const railUsage = new Map<number, number>();
+            for (const track of scenario.rails) {
+              for (const segment of track) {
+                const existing = railUsage.get(segment.length) || 0;
+                railUsage.set(segment.length, existing + 1);
+              }
+            }
+            const railEntries = Array.from(railUsage.entries()).sort((a, b) => b[0] - a[0]);
+            const totalSegments = railEntries.reduce((sum, [, count]) => sum + count, 0);
+
+            return (
+              <div className={styles.section}>
+                <h3 className={styles.sectionTitle}>
+                  {t('inventory.rails')}
+                  <span className={styles.badge}>{totalSegments} {t('inventory.rails').toLowerCase()}</span>
+                </h3>
+                <div className={styles.braceList}>
+                  {railEntries.map(([length, count]) => (
+                    <div key={length} className={styles.braceItem}>
+                      <span className={styles.braceSwatch} style={{ backgroundColor: '#4A5553' }} />
                       <div className={styles.braceInfo}>
                         <span className={styles.braceSize}>
-                          {formatNum(brace.length)}m × {formatNum(brace.width)}m
+                          {formatNum(length)}m
                         </span>
-                        <span className={styles.braceCount}>qty: {brace.quantity}</span>
+                        <span className={styles.braceCount}>×{count}</span>
                       </div>
                     </div>
-                  );
-                })}
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
         </div>
 
         {/* Footer */}

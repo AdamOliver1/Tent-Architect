@@ -13,6 +13,7 @@
     "newProjectDesc": "Set your tent dimensions and inventory to generate optimized scenarios.",
     "recentProjects": "Recent Projects",
     "recentProjectsDesc": "Pick up where you left off or start from a template.",
+    "recentProjectsInDev": "Recent Projects — In Development",
     "startFromTemplate": "Start from Template"
   },
   "language": {
@@ -68,13 +69,24 @@
     "fillLength": "Fill length",
     "gap": "Gap",
     "totalGap": "Total Gap",
+    "maxGap": "Max Gap",
     "braceKinds": "Brace Types",
     "openEndSetbackStart": "Open-End Start",
     "openEndSetbackEnd": "Open-End End",
     "railEndSetback": "Rail-End Setback",
     "inventoryDetails": "Inventory Details",
     "inventoryBtn": "Inventory",
-    "close": "Close column details"
+    "close": "Close column details",
+    "scenarioNames": {
+      "Best Width Fit": "Best Width Fit",
+      "Least Brace Kinds": "Least Brace Kinds",
+      "Minimum Gaps": "Minimum Gaps",
+      "Least Rails": "Least Rails",
+      "Least Braces": "Least Braces",
+      "Biggest Braces": "Biggest Braces",
+      "Balanced": "Balanced",
+      "Option": "Option"
+    }
   },
   "export": {
     "title": "Export Floor Plan",

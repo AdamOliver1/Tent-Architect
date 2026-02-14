@@ -4,6 +4,7 @@ import {
   TentDimensions,
   Brace,
   Rail,
+  BracePlacement,
   ColumnType,
   Column,
   RailSegment,
@@ -30,19 +31,8 @@ const PRECISION = 0.01;
 /** Maximum allowed gap per column in meters (39cm) */
 const MAX_COLUMN_GAP = 0.39;
 
-/** Scenario name labels */
-const SCENARIO_NAMES = [
-  'Best Width Fit',
-  'Minimum Gaps',
-  'Least Brace Kinds',
-  'Least Rails',
-  'Least Braces',
-  'Biggest Braces',
-  'Balanced',
-  'Balanced 2',
-  'Balanced 3',
-  'Balanced 4',
-];
+/** Maximum scenarios to return */
+const MAX_SCENARIOS = 20;
 
 @Injectable()
 export class CalculationService {
@@ -115,11 +105,12 @@ export class CalculationService {
     const selectedSolutions = this.selectNamedScenarios(allDPSolutions);
 
     // Construct scenarios only for selected solutions
-    const scenarios = selectedSolutions.map((sol, index) => {
+    const scenarios = selectedSolutions.map((sol) => {
       const tagged = taggedSolutions.find((t) => t.solution === sol)!;
+      const name = (sol as any).__scenarioName || 'Scenario';
       const scenario = this.constructScenario(
         sol,
-        SCENARIO_NAMES[index] || `Scenario ${index + 1}`,
+        name,
         tagged.orientedTent,
         inventory.rails,
       );
@@ -314,8 +305,198 @@ export class CalculationService {
       }
     }
 
+    // Generate mixed column types for groups sharing the same columnWidth.
+    // Then prune pure types that are strictly dominated by the mixed type
+    // (worse gap AND more braces). This prevents the DP from choosing columns
+    // with many small braces when a mixed column using larger braces is better.
+    const byWidth = new Map<number, ColumnType[]>();
+    for (const ct of columnTypes) {
+      const key = Math.round(ct.columnWidth * 1000); // avoid float key issues
+      const group = byWidth.get(key) || [];
+      group.push(ct);
+      byWidth.set(key, group);
+    }
+
+    // Track which pure types to remove (dominated by mixed)
+    const toRemove = new Set<ColumnType>();
+
+    for (const [, group] of byWidth) {
+      // Only create mixed if there are 2+ distinct fill lengths
+      const distinctFills = new Set(group.map((ct) => ct.fillLength));
+      if (distinctFills.size < 2) continue;
+
+      // Best pure gap and its brace count for this columnWidth
+      const bestPureGap = Math.min(...group.map((ct) => ct.gap));
+      const bestPureBraceCount = Math.min(
+        ...group.filter((ct) => Math.abs(ct.gap - bestPureGap) < 0.001).map((ct) => ct.braceCount),
+      );
+
+      // Build fill options from the group
+      const fillOptions = group.map((ct) => ({
+        fillLength: ct.fillLength,
+        braceLength: ct.braceLength,
+        braceWidth: ct.braceWidth,
+        rotated: ct.rotated,
+      }));
+
+      const usableLengthCm = Math.round(usableLength / PRECISION);
+      const { placements, gap: mixedGap } = this.solveMixedFill(fillOptions, usableLengthCm);
+
+      if (placements.length <= 1) continue;
+
+      const totalBraceCount = placements.reduce((sum, p) => sum + p.count, 0);
+
+      // Add mixed column if it improves gap OR uses significantly fewer braces at same gap
+      const gapImproves = mixedGap < bestPureGap - 0.001;
+      const samGapFewerBraces = Math.abs(mixedGap - bestPureGap) < 0.001
+        && totalBraceCount < bestPureBraceCount;
+
+      if (gapImproves || samGapFewerBraces) {
+        // Use the dominant (most-used) brace for backward-compat fields
+        const dominant = placements.reduce((best, p) => p.count > best.count ? p : best);
+
+        const mixedType: ColumnType = {
+          braceLength: dominant.braceLength,
+          braceWidth: dominant.braceWidth,
+          rotated: dominant.rotated,
+          columnWidth: group[0].columnWidth,
+          fillLength: dominant.fillLength,
+          braceCount: totalBraceCount,
+          gap: mixedGap,
+          mixed: true,
+          bracePlacements: placements,
+        };
+
+        columnTypes.push(mixedType);
+
+        // Prune dominated pure types: remove pure types that have
+        // worse-or-equal gap AND more braces than the mixed type.
+        // Always bigger braces are preferred — 49×0.4m is never better than
+        // 19×1.0m + 2×0.4m when the mixed type achieves a better gap too.
+        for (const pure of group) {
+          if (pure.gap >= mixedGap - 0.001 && pure.braceCount > totalBraceCount) {
+            toRemove.add(pure);
+          }
+        }
+      }
+    }
+
+    // Remove dominated pure types
+    const filtered = toRemove.size > 0
+      ? columnTypes.filter((ct) => !toRemove.has(ct))
+      : columnTypes;
+
     // Sort by column width for consistent ordering
-    return columnTypes.sort((a, b) => a.columnWidth - b.columnWidth);
+    return filtered.sort((a, b) => a.columnWidth - b.columnWidth);
+  }
+
+  /**
+   * Solve mixed fill: find the combination of brace types (sharing the same columnWidth)
+   * that maximizes total fill without exceeding the target length.
+   * Uses bounded knapsack DP in centimeter units.
+   *
+   * @param fillOptions - Available brace types for this column width
+   * @param usableLengthCm - Target usable length in centimeters (integer)
+   * @param maxCountPerOption - Max braces per option (e.g., from inventory). Defaults to usableLength/fillLength.
+   * @returns Object with bracePlacements and resulting gap in meters
+   */
+  solveMixedFill(
+    fillOptions: { fillLength: number; braceLength: number; braceWidth: number; rotated: boolean }[],
+    usableLengthCm: number,
+    maxCountPerOption?: number[],
+  ): { placements: BracePlacement[]; gap: number } {
+    const targetCm = Math.round(usableLengthCm);
+    if (targetCm <= 0 || fillOptions.length === 0) {
+      return { placements: [], gap: usableLengthCm * PRECISION };
+    }
+
+    // Sort options by descending fillLength so the DP processes largest braces first.
+    // This ensures that when two combinations achieve the same fill, the one using
+    // larger (fewer) braces wins the tie.
+    const sortedIndices = fillOptions
+      .map((_, i) => i)
+      .sort((a, b) => {
+        const fa = Math.round(fillOptions[a].fillLength / PRECISION);
+        const fb = Math.round(fillOptions[b].fillLength / PRECISION);
+        return fb - fa; // largest first
+      });
+
+    // Convert fill lengths to cm
+    const optionsCm = fillOptions.map((opt) => Math.round(opt.fillLength / PRECISION));
+
+    // Compute max count for each option
+    const maxCounts = fillOptions.map((_, i) => {
+      if (maxCountPerOption && maxCountPerOption[i] !== undefined) {
+        return Math.min(maxCountPerOption[i], Math.floor(targetCm / optionsCm[i]));
+      }
+      return Math.floor(targetCm / optionsCm[i]);
+    });
+
+    // DP arrays: dpFill[w] = max fill achievable, dpCount[w] = min braces for that fill
+    const dpFill = new Int32Array(targetCm + 1).fill(0);
+    const dpCount = new Int32Array(targetCm + 1).fill(0);
+    // Track choices for backtracking
+    const choice: { optIdx: number; count: number }[] = new Array(targetCm + 1).fill(null).map(() => ({ optIdx: -1, count: 0 }));
+
+    // Process options in descending fillLength order
+    for (const i of sortedIndices) {
+      const fillCm = optionsCm[i];
+      if (fillCm <= 0) continue;
+      const maxK = maxCounts[i];
+
+      // Bounded knapsack with binary splitting
+      let remaining = maxK;
+      let multiplier = 1;
+      while (remaining > 0) {
+        const batch = Math.min(multiplier, remaining);
+        const batchFill = batch * fillCm;
+
+        for (let w = targetCm; w >= batchFill; w--) {
+          const newFill = dpFill[w - batchFill] + batchFill;
+          const newCount = dpCount[w - batchFill] + batch;
+          // Primary: maximize fill. Tie-break: minimize brace count (prefer larger braces).
+          if (newFill > dpFill[w] || (newFill === dpFill[w] && newCount < dpCount[w])) {
+            dpFill[w] = newFill;
+            dpCount[w] = newCount;
+            choice[w] = { optIdx: i, count: batch };
+          }
+        }
+
+        remaining -= batch;
+        multiplier *= 2;
+      }
+    }
+
+    // Backtrack to find actual counts
+    const counts = new Array(fillOptions.length).fill(0);
+    let w = targetCm;
+    while (w > 0 && choice[w].optIdx >= 0) {
+      const { optIdx, count } = choice[w];
+      counts[optIdx] += count;
+      w -= count * optionsCm[optIdx];
+    }
+
+    // Build placements (only include options with count > 0)
+    const placements: BracePlacement[] = [];
+    for (let i = 0; i < fillOptions.length; i++) {
+      if (counts[i] > 0) {
+        placements.push({
+          braceLength: fillOptions[i].braceLength,
+          braceWidth: fillOptions[i].braceWidth,
+          rotated: fillOptions[i].rotated,
+          fillLength: fillOptions[i].fillLength,
+          count: counts[i],
+        });
+      }
+    }
+
+    // Sort by fillLength descending (primary/largest braces first)
+    placements.sort((a, b) => b.fillLength - a.fillLength);
+
+    const totalFillCm = dpFill[targetCm];
+    const gapM = (targetCm - totalFillCm) * PRECISION;
+
+    return { placements, gap: Math.max(0, gapM) };
   }
 
   /**
@@ -324,7 +505,13 @@ export class CalculationService {
   private countDistinctBraceTypes(columns: ColumnType[]): number {
     const seen = new Set<string>();
     for (const col of columns) {
-      seen.add(`${col.braceLength}x${col.braceWidth}`);
+      if (col.bracePlacements) {
+        for (const bp of col.bracePlacements) {
+          seen.add(`${bp.braceLength}x${bp.braceWidth}`);
+        }
+      } else {
+        seen.add(`${col.braceLength}x${col.braceWidth}`);
+      }
     }
     return seen.size;
   }
@@ -395,18 +582,40 @@ export class CalculationService {
         for (const solution of currentSolutions) {
           // Check brace quantity constraints
           if (braces && braces.length > 0) {
-            const braceKey = `${columnType.braceLength}x${columnType.braceWidth}`;
-            const currentUsage = (solution.braceUsage || {})[braceKey] || 0;
-            const maxAvailable = braceQuantities[braceKey] || 0;
-            if (currentUsage + columnType.braceCount > maxAvailable) {
-              continue; // Skip: not enough braces in inventory
+            if (columnType.bracePlacements) {
+              // Mixed column: check each brace type in placements
+              let canFit = true;
+              for (const bp of columnType.bracePlacements) {
+                const bpKey = `${bp.braceLength}x${bp.braceWidth}`;
+                const currentUsage = (solution.braceUsage || {})[bpKey] || 0;
+                const maxAvailable = braceQuantities[bpKey] || 0;
+                if (currentUsage + bp.count > maxAvailable) {
+                  canFit = false;
+                  break;
+                }
+              }
+              if (!canFit) continue;
+            } else {
+              const braceKey = `${columnType.braceLength}x${columnType.braceWidth}`;
+              const currentUsage = (solution.braceUsage || {})[braceKey] || 0;
+              const maxAvailable = braceQuantities[braceKey] || 0;
+              if (currentUsage + columnType.braceCount > maxAvailable) {
+                continue; // Skip: not enough braces in inventory
+              }
             }
           }
 
           // Update brace usage tracking
           const newBraceUsage = { ...(solution.braceUsage || {}) };
-          const braceKey = `${columnType.braceLength}x${columnType.braceWidth}`;
-          newBraceUsage[braceKey] = (newBraceUsage[braceKey] || 0) + columnType.braceCount;
+          if (columnType.bracePlacements) {
+            for (const bp of columnType.bracePlacements) {
+              const bpKey = `${bp.braceLength}x${bp.braceWidth}`;
+              newBraceUsage[bpKey] = (newBraceUsage[bpKey] || 0) + bp.count;
+            }
+          } else {
+            const braceKey = `${columnType.braceLength}x${columnType.braceWidth}`;
+            newBraceUsage[braceKey] = (newBraceUsage[braceKey] || 0) + columnType.braceCount;
+          }
 
           const newColumns = [...solution.columns, columnType];
 
@@ -518,21 +727,38 @@ export class CalculationService {
       const steps = Math.round((maxUsableLength - minUsableLength) / PRECISION);
       for (let i = 0; i <= steps; i++) {
         const usableLen = minUsableLength + i * PRECISION;
+        const usableLenCm = Math.round(usableLen / PRECISION);
         let totalGap = 0;
         let allColumnsValid = true;
 
         for (const col of solution.columns) {
-          const n = Math.floor(usableLen / col.fillLength);
-          if (n < 1) {
-            allColumnsValid = false;
-            break;
+          if (col.mixed && col.bracePlacements) {
+            // Re-solve knapsack for mixed columns at this usable length
+            const fillOptions = col.bracePlacements.map((bp) => ({
+              fillLength: bp.fillLength,
+              braceLength: bp.braceLength,
+              braceWidth: bp.braceWidth,
+              rotated: bp.rotated,
+            }));
+            const { gap: mixedGap } = this.solveMixedFill(fillOptions, usableLenCm);
+            if (mixedGap > MAX_COLUMN_GAP + 0.001) {
+              allColumnsValid = false;
+              break;
+            }
+            totalGap += mixedGap;
+          } else {
+            const n = Math.floor(usableLen / col.fillLength);
+            if (n < 1) {
+              allColumnsValid = false;
+              break;
+            }
+            const colGap = usableLen - n * col.fillLength;
+            if (colGap > MAX_COLUMN_GAP + 0.001) {
+              allColumnsValid = false;
+              break;
+            }
+            totalGap += colGap;
           }
-          const colGap = usableLen - n * col.fillLength;
-          if (colGap > MAX_COLUMN_GAP + 0.001) {
-            allColumnsValid = false;
-            break;
-          }
-          totalGap += colGap;
         }
 
         if (allColumnsValid && totalGap < bestTotalGap - 0.0001) {
@@ -547,21 +773,55 @@ export class CalculationService {
       const openSetbackEach = totalOpenSetback / 2;
 
       // Recompute brace counts for each column at the optimized length
+      const bestUsableLenCm = Math.round(bestUsableLength / PRECISION);
       const updatedColumns = solution.columns.map((col) => {
-        const n = Math.floor(bestUsableLength / col.fillLength);
-        const gap = bestUsableLength - n * col.fillLength;
-        return {
-          ...col,
-          braceCount: n,
-          gap,
-        };
+        if (col.mixed && col.bracePlacements) {
+          // Re-solve knapsack for mixed columns
+          const fillOptions = col.bracePlacements.map((bp) => ({
+            fillLength: bp.fillLength,
+            braceLength: bp.braceLength,
+            braceWidth: bp.braceWidth,
+            rotated: bp.rotated,
+          }));
+          const { placements, gap: mixedGap } = this.solveMixedFill(fillOptions, bestUsableLenCm);
+          const totalCount = placements.reduce((sum, p) => sum + p.count, 0);
+          // Determine dominant brace for backward-compat fields
+          const dominant = placements.length > 0
+            ? placements.reduce((best, p) => p.count > best.count ? p : best)
+            : col.bracePlacements[0];
+          return {
+            ...col,
+            braceLength: dominant.braceLength,
+            braceWidth: dominant.braceWidth,
+            rotated: dominant.rotated,
+            fillLength: dominant.fillLength,
+            braceCount: totalCount,
+            gap: mixedGap,
+            bracePlacements: placements,
+          };
+        } else {
+          const n = Math.floor(bestUsableLength / col.fillLength);
+          const gap = bestUsableLength - n * col.fillLength;
+          return {
+            ...col,
+            braceCount: n,
+            gap,
+          };
+        }
       });
 
       // Recompute brace usage for the updated columns
       const newBraceUsage: Record<string, number> = {};
       for (const col of updatedColumns) {
-        const key = `${col.braceLength}x${col.braceWidth}`;
-        newBraceUsage[key] = (newBraceUsage[key] || 0) + col.braceCount;
+        if (col.bracePlacements) {
+          for (const bp of col.bracePlacements) {
+            const key = `${bp.braceLength}x${bp.braceWidth}`;
+            newBraceUsage[key] = (newBraceUsage[key] || 0) + bp.count;
+          }
+        } else {
+          const key = `${col.braceLength}x${col.braceWidth}`;
+          newBraceUsage[key] = (newBraceUsage[key] || 0) + col.braceCount;
+        }
       }
 
       return {
@@ -578,8 +838,9 @@ export class CalculationService {
 
   /**
    * Select named scenarios from the full solution pool.
-   * Each criterion does a simple reduce over ALL solutions — no Pareto filtering.
-   * Returns up to 10 unique solutions, minimum 6 if enough exist.
+   * Returns up to MAX_SCENARIOS unique solutions with descriptive names.
+   * Includes variants for key categories (Biggest Braces, Least Rails, etc.)
+   * to give the user more choices.
    */
   selectNamedScenarios(solutions: DPSolution[]): DPSolution[] {
     if (solutions.length === 0) {
@@ -590,15 +851,56 @@ export class CalculationService {
       return [solutions[0]];
     }
 
-    const selected: DPSolution[] = [];
+    const selected: { sol: DPSolution; name: string }[] = [];
     const selectedSet = new Set<DPSolution>();
 
-    const addUnique = (sol: DPSolution) => {
+    const addUnique = (sol: DPSolution, name: string): boolean => {
       if (!selectedSet.has(sol)) {
         selectedSet.add(sol);
-        selected.push(sol);
+        selected.push({ sol, name });
+        return true;
       }
+      return false;
     };
+
+    // ── Helper: compute brace coverage properly (handles mixed columns) ──
+    const totalBraceCount = (sol: DPSolution): number =>
+      sol.columns.reduce((sum, col) => sum + col.braceCount, 0);
+
+    // Total area covered by largest brace size across ALL columns in a solution
+    const totalLargestBraceCoverage = (sol: DPSolution): { maxArea: number; totalCoverage: number } => {
+      // Find largest brace area
+      let maxArea = 0;
+      for (const col of sol.columns) {
+        if (col.bracePlacements) {
+          for (const bp of col.bracePlacements) {
+            maxArea = Math.max(maxArea, bp.braceLength * bp.braceWidth);
+          }
+        } else {
+          maxArea = Math.max(maxArea, col.braceLength * col.braceWidth);
+        }
+      }
+      // Sum coverage of that brace size across all columns
+      let totalCoverage = 0;
+      for (const col of sol.columns) {
+        if (col.bracePlacements) {
+          for (const bp of col.bracePlacements) {
+            if (Math.abs(bp.braceLength * bp.braceWidth - maxArea) < 0.001) {
+              totalCoverage += bp.braceLength * bp.braceWidth * bp.count;
+            }
+          }
+        } else {
+          if (Math.abs(col.braceLength * col.braceWidth - maxArea) < 0.001) {
+            totalCoverage += col.braceLength * col.braceWidth * col.braceCount;
+          }
+        }
+      }
+      return { maxArea, totalCoverage };
+    };
+
+    // ═══════════════════════════════════════════════════
+    // 1. CORE SCENARIOS (always included, one each)
+    // ═══════════════════════════════════════════════════
 
     // 1. Best Width Fit: min setbackExcess, tie-break: min totalGap
     const bestWidthFit = solutions.reduce((best, cur) => {
@@ -606,67 +908,75 @@ export class CalculationService {
       if (cur.setbackExcess === best.setbackExcess && cur.totalGap < best.totalGap) return cur;
       return best;
     });
-    addUnique(bestWidthFit);
+    addUnique(bestWidthFit, 'Best Width Fit');
 
-    // 2. Minimum Gaps: min totalGap, tie-break: min setbackExcess
-    const minGaps = solutions.reduce((best, cur) => {
-      if (cur.totalGap < best.totalGap) return cur;
-      if (cur.totalGap === best.totalGap && cur.setbackExcess < best.setbackExcess) return cur;
-      return best;
-    });
-    addUnique(minGaps);
-
-    // 3. Least Brace Kinds: min distinctBraceTypes, tie-break: min totalGap
+    // 2. Least Brace Kinds: min distinctBraceTypes, tie-break: min totalGap
     const leastKinds = solutions.reduce((best, cur) => {
       if (cur.distinctBraceTypes < best.distinctBraceTypes) return cur;
       if (cur.distinctBraceTypes === best.distinctBraceTypes && cur.totalGap < best.totalGap) return cur;
       return best;
     });
-    addUnique(leastKinds);
+    addUnique(leastKinds, 'Least Brace Kinds');
 
-    // 4. Least Rails: min columns.length, tie-break: min totalGap
-    const leastRails = solutions.reduce((best, cur) => {
-      if (cur.columns.length < best.columns.length) return cur;
-      if (cur.columns.length === best.columns.length && cur.totalGap < best.totalGap) return cur;
-      return best;
+    // ═══════════════════════════════════════════════════
+    // 2. VARIANTS — multiple options for key categories
+    // ═══════════════════════════════════════════════════
+
+    // Minimum Gaps variants: solutions sorted by totalGap (ascending)
+    // Guarantees at least one scenario explicitly named "Minimum Gaps"
+    const sortedByGap = [...solutions].sort((a, b) => {
+      if (Math.abs(a.totalGap - b.totalGap) > 0.001) return a.totalGap - b.totalGap;
+      return a.setbackExcess - b.setbackExcess;
     });
-    addUnique(leastRails);
+    for (let i = 0; i < Math.min(3, sortedByGap.length); i++) {
+      const suffix = i === 0 ? '' : ` ${i + 1}`;
+      addUnique(sortedByGap[i], `Minimum Gaps${suffix}`);
+    }
 
-    // 5. Least Braces: min total brace count, tie-break: min totalGap
-    const totalBraceCount = (sol: DPSolution): number =>
-      sol.columns.reduce((sum, col) => sum + col.braceCount, 0);
+    // Least Rails variants: solutions with fewest columns, sorted by totalGap
+    const minColCount = Math.min(...solutions.map((s) => s.columns.length));
+    const leastRailsCandidates = solutions
+      .filter((s) => s.columns.length <= minColCount + 1) // include +1 column variants too
+      .sort((a, b) => {
+        if (a.columns.length !== b.columns.length) return a.columns.length - b.columns.length;
+        return a.totalGap - b.totalGap;
+      });
+    for (let i = 0; i < Math.min(3, leastRailsCandidates.length); i++) {
+      const suffix = i === 0 ? '' : ` ${i + 1}`;
+      addUnique(leastRailsCandidates[i], `Least Rails${suffix}`);
+    }
 
-    const leastBraces = solutions.reduce((best, cur) => {
-      if (totalBraceCount(cur) < totalBraceCount(best)) return cur;
-      if (totalBraceCount(cur) === totalBraceCount(best) && cur.totalGap < best.totalGap) return cur;
-      return best;
+    // Least Braces variants: solutions with fewest total braces
+    const sortedByBraceCount = [...solutions].sort((a, b) => {
+      const diff = totalBraceCount(a) - totalBraceCount(b);
+      if (diff !== 0) return diff;
+      return a.totalGap - b.totalGap;
     });
-    addUnique(leastBraces);
+    for (let i = 0; i < Math.min(2, sortedByBraceCount.length); i++) {
+      const suffix = i === 0 ? '' : ` ${i + 1}`;
+      addUnique(sortedByBraceCount[i], `Least Braces${suffix}`);
+    }
 
-    // 6. Biggest Braces: max coverage by largest brace type, tie-break: min totalGap
-    const largestBraceCoverage = (sol: DPSolution): number => {
-      let maxArea = 0;
-      let maxCoverage = 0;
-      for (const col of sol.columns) {
-        const area = col.braceLength * col.braceWidth;
-        const coverage = area * col.braceCount;
-        if (area > maxArea || (area === maxArea && coverage > maxCoverage)) {
-          maxArea = area;
-          maxCoverage = coverage;
-        }
-      }
-      return maxCoverage;
-    };
-    const biggestBraces = solutions.reduce((best, cur) => {
-      const bestCov = largestBraceCoverage(best);
-      const curCov = largestBraceCoverage(cur);
-      if (curCov > bestCov) return cur;
-      if (curCov === bestCov && cur.totalGap < best.totalGap) return cur;
-      return best;
+    // Biggest Braces variants: solutions that maximize coverage by largest brace
+    const sortedByBiggestBrace = [...solutions].sort((a, b) => {
+      const aCov = totalLargestBraceCoverage(a);
+      const bCov = totalLargestBraceCoverage(b);
+      // Primary: largest brace area
+      if (Math.abs(aCov.maxArea - bCov.maxArea) > 0.001) return bCov.maxArea - aCov.maxArea;
+      // Secondary: more coverage by that brace
+      if (Math.abs(aCov.totalCoverage - bCov.totalCoverage) > 0.01) return bCov.totalCoverage - aCov.totalCoverage;
+      // Tertiary: lower gap
+      return a.totalGap - b.totalGap;
     });
-    addUnique(biggestBraces);
+    for (let i = 0; i < Math.min(3, sortedByBiggestBrace.length); i++) {
+      const suffix = i === 0 ? '' : ` ${i + 1}`;
+      addUnique(sortedByBiggestBrace[i], `Biggest Braces${suffix}`);
+    }
 
-    // 7. Balanced: knee point (closest to origin in normalized setback × gap space)
+    // ═══════════════════════════════════════════════════
+    // 3. BALANCED — knee-point and spread from remaining
+    // ═══════════════════════════════════════════════════
+
     if (solutions.length > 2) {
       const maxSetback = Math.max(...solutions.map((s) => s.setbackExcess));
       const minSetback = Math.min(...solutions.map((s) => s.setbackExcess));
@@ -690,35 +1000,50 @@ export class CalculationService {
       }
 
       if (balanced) {
-        addUnique(balanced);
+        addUnique(balanced, 'Balanced');
       }
     }
 
-    // 8-10. Balanced 2-4: evenly-spaced from remaining pool sorted by totalGap
+    // ═══════════════════════════════════════════════════
+    // 4. FILL remaining slots with diverse solutions
+    // ═══════════════════════════════════════════════════
+
     const remaining = solutions
       .filter((s) => !selectedSet.has(s))
       .sort((a, b) => a.totalGap - b.totalGap);
 
     if (remaining.length > 0) {
-      const numSlots = Math.min(3, remaining.length);
+      let balancedIdx = 2;
+      const numSlots = Math.min(Math.max(3, MAX_SCENARIOS - selected.length), remaining.length);
       for (let i = 0; i < numSlots; i++) {
         const idx = Math.round((i * (remaining.length - 1)) / Math.max(numSlots - 1, 1));
-        addUnique(remaining[idx]);
+        if (addUnique(remaining[idx], `Balanced ${balancedIdx}`)) {
+          balancedIdx++;
+        }
       }
     }
 
-    // Fill to 6 if needed: add remaining sorted by totalGap
+    // Fill to 6 minimum if needed
     if (selected.length < 6) {
       const leftover = solutions
         .filter((s) => !selectedSet.has(s))
         .sort((a, b) => a.totalGap - b.totalGap);
+      let optIdx = selected.length + 1;
       for (const sol of leftover) {
         if (selected.length >= 6) break;
-        addUnique(sol);
+        if (addUnique(sol, `Option ${optIdx}`)) {
+          optIdx++;
+        }
       }
     }
 
-    return selected.slice(0, 10);
+    // Return solutions with their names attached
+    const result = selected.slice(0, MAX_SCENARIOS);
+    // Attach names to solutions for constructScenario to use
+    for (const entry of result) {
+      (entry.sol as any).__scenarioName = entry.name;
+    }
+    return result.map((e) => e.sol);
   }
 
   /**

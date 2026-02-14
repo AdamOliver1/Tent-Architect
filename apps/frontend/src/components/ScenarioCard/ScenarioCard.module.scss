@@ -40,7 +40,7 @@
 
 .body {
   flex: 1;
-  padding: $spacing-lg;
+  padding: $spacing-lg $spacing-xl;
   display: flex;
   flex-direction: column;
   gap: $spacing-md;
@@ -53,25 +53,27 @@
   letter-spacing: -0.01em;
 }
 
-// ── Metrics row ──
+// ── Metrics grid ──
 .metrics {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr auto 1fr auto 1fr;
   align-items: center;
-  gap: $spacing-md;
+  gap: $spacing-sm;
 }
 
 .metric {
   display: flex;
   flex-direction: column;
   gap: $spacing-2xs;
-  flex: 1;
+  min-width: 0;
 }
 
 .metricValue {
-  font-size: $font-lg;
+  font-size: $font-md;
   font-weight: 600;
   color: $text-color;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .metricLabel {
@@ -79,7 +81,8 @@
   font-weight: 500;
   color: $text-muted;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
 }
 
 .metricDivider {
