@@ -14,12 +14,13 @@ i18n
       he: { translation: he },
       ar: { translation: ar },
     },
-    fallbackLng: 'en',
+    lng: 'he',
+    fallbackLng: 'he',
     interpolation: {
       escapeValue: false,
     },
     detection: {
-      order: ['localStorage', 'navigator'],
+      order: ['localStorage'],
       caches: ['localStorage'],
     },
   });
