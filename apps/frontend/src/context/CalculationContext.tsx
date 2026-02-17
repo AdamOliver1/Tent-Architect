@@ -47,6 +47,9 @@ const defaultInventory: Inventory = {
   ],
   rails: [
     { length: 1.0, quantity: 1000 },
+    { length: 2.0, quantity: 1000 },
+    { length: 3.0, quantity: 1000 },
+    { length: 4.0, quantity: 1000 },
     { length: 5.0, quantity: 1000 },
     { length: 7.36, quantity: 1000 },
   ],

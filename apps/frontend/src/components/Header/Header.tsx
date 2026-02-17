@@ -29,38 +29,16 @@ export function Header() {
           type="button"
           aria-label="Go to homepage"
         >
-          {/* Tent icon */}
-          <svg
+          <img
             className={styles.logoIcon}
-            width="28"
-            height="28"
-            viewBox="0 0 28 28"
-            fill="none"
-            aria-hidden="true"
-          >
-            <path
-              d="M14 3L3 23h22L14 3z"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinejoin="round"
-              fill="none"
-            />
-            <path
-              d="M14 3v20"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-            />
-            <path
-              d="M8 15l6 8 6-8"
-              stroke="currentColor"
-              strokeWidth="1.2"
-              strokeLinejoin="round"
-              fill="none"
-              opacity="0.5"
-            />
-          </svg>
-          <span className={styles.logoText}>KatsBros / האחים כץ</span>
+            src="/logo.png"
+            alt="אחים כץ"
+            width="32"
+            height="32"
+          />
+          <span className={styles.logoText}>
+            {i18n.language === 'he' ? 'האחים כץ' : 'KatsBros'}
+          </span>
         </button>
 
         {/* Right section */}

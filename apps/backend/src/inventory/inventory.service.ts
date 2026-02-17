@@ -17,6 +17,9 @@ export const DEFAULT_BRACES: Brace[] = [
  */
 export const DEFAULT_RAILS: Rail[] = [
   { length: 1.0, quantity: Infinity },
+  { length: 2.0, quantity: Infinity },
+  { length: 3.0, quantity: Infinity },
+  { length: 4.0, quantity: Infinity },
   { length: 5.0, quantity: Infinity },
   { length: 7.36, quantity: Infinity },
 ];
