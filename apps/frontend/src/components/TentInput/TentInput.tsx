@@ -1,3 +1,4 @@
+import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TentDimensions } from '../../types';
 import styles from './TentInput.module.scss';
@@ -8,18 +9,48 @@ interface TentInputProps {
   disabled?: boolean;
 }
 
+const isValidNumericInput = (value: string): boolean => {
+  return /^\d*\.?\d*$/.test(value);
+};
+
 export function TentInput({ tent, onChange, disabled }: TentInputProps) {
   const { t } = useTranslation();
+
+  const [lengthText, setLengthText] = useState(String(tent.length));
+  const [widthText, setWidthText] = useState(String(tent.width));
+  const prevLengthRef = useRef(tent.length);
+  const prevWidthRef = useRef(tent.width);
+
+  useEffect(() => {
+    if (prevLengthRef.current !== tent.length) {
+      prevLengthRef.current = tent.length;
+      setLengthText(String(tent.length));
+    }
+  }, [tent.length]);
+
+  useEffect(() => {
+    if (prevWidthRef.current !== tent.width) {
+      prevWidthRef.current = tent.width;
+      setWidthText(String(tent.width));
+    }
+  }, [tent.width]);
+
   const handleLengthChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = parseFloat(e.target.value);
-    if (!isNaN(value) && value > 0) {
+    const raw = e.target.value;
+    if (!isValidNumericInput(raw)) return;
+    setLengthText(raw);
+    const value = Number.parseFloat(raw);
+    if (!Number.isNaN(value) && value > 0) {
       onChange({ ...tent, length: value });
     }
   };
 
   const handleWidthChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = parseFloat(e.target.value);
-    if (!isNaN(value) && value > 0) {
+    const raw = e.target.value;
+    if (!isValidNumericInput(raw)) return;
+    setWidthText(raw);
+    const value = Number.parseFloat(raw);
+    if (!Number.isNaN(value) && value > 0) {
       onChange({ ...tent, width: value });
     }
   };
@@ -35,10 +66,9 @@ export function TentInput({ tent, onChange, disabled }: TentInputProps) {
           <div className={styles.inputWrapper}>
             <input
               id="tent-length"
-              type="number"
-              min="0.5"
-              step="0.1"
-              value={tent.length}
+              type="text"
+              inputMode="decimal"
+              value={lengthText}
               onChange={handleLengthChange}
               disabled={disabled}
               className={styles.input}
@@ -58,10 +88,9 @@ export function TentInput({ tent, onChange, disabled }: TentInputProps) {
           <div className={styles.inputWrapper}>
             <input
               id="tent-width"
-              type="number"
-              min="0.5"
-              step="0.1"
-              value={tent.width}
+              type="text"
+              inputMode="decimal"
+              value={widthText}
               onChange={handleWidthChange}
               disabled={disabled}
               className={styles.input}
