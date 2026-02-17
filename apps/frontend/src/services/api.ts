@@ -1,6 +1,6 @@
 import type { TentDimensions, Inventory, Scenario, Constraints } from '../types';
 
-const API_BASE = '/api';
+const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
 export interface CalculateRequest {
   tent: TentDimensions;
