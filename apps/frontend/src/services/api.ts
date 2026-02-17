@@ -44,10 +44,13 @@ export async function calculateFloorPlan(
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new ApiError(
-      response.status,
-      errorData.message || `Request failed with status ${response.status}`
-    );
+    let message = `Request failed with status ${response.status}`;
+    if (typeof errorData.message === 'string') {
+      message = errorData.message;
+    } else if (Array.isArray(errorData.message)) {
+      message = errorData.message.join(', ');
+    }
+    throw new ApiError(response.status, message);
   }
 
   return response.json();

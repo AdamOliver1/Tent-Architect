@@ -163,6 +163,10 @@
     flex: 1;
   }
 
+  .errorMessage {
+    white-space: pre-line;
+  }
+
   button {
     background: none;
     border: none;

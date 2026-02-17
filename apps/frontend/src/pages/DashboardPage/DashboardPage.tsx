@@ -5,6 +5,7 @@ import { TentInput } from '../../components/TentInput';
 import { InventoryEditor } from '../../components/InventoryEditor';
 import { ConstraintsEditor } from '../../components/ConstraintsEditor';
 import { Button } from '../../components/Button';
+import { formatValidationError } from '../../utils/formatValidationError';
 import styles from './DashboardPage.module.scss';
 
 export function DashboardPage() {
@@ -111,7 +112,7 @@ export function DashboardPage() {
                   <circle cx="9" cy="9" r="7.5" stroke="currentColor" strokeWidth="1.5" />
                   <path d="M9 6v4M9 12.5v.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                 </svg>
-                <span>{error}</span>
+                <span className={styles.errorMessage}>{formatValidationError(error, t)}</span>
                 <button onClick={clearError} type="button" aria-label="Dismiss error">
                   <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
                     <path d="M4 4l6 6M10 4l-6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />

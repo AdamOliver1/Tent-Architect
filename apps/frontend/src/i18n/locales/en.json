@@ -116,6 +116,34 @@
   "error": {
     "invalidDimensions": "Please enter valid tent dimensions",
     "calculationFailed": "Calculation failed. Please try again.",
-    "generic": "Something went wrong"
+    "generic": "Something went wrong",
+    "validation": {
+      "braceLengthInvalid": "Please enter a valid positive length for brace {{index}}.",
+      "braceWidthInvalid": "Please enter a valid positive width for brace {{index}}.",
+      "braceQuantityInvalid": "Please enter a quantity of at least 1 for brace {{index}}.",
+      "railLengthInvalid": "Please enter a valid positive length for rail {{index}}.",
+      "railQuantityInvalid": "Please enter a quantity of at least 1 for rail {{index}}.",
+      "tentDimensionsInvalid": "Please enter valid positive tent dimensions.",
+      "other": "Please check the other fields and try again."
+    },
+    "inventory": {
+      "atLeastOneBrace": "At least one brace type is required.",
+      "atLeastOneRail": "At least one rail type is required."
+    },
+    "calculation": {
+      "noValidFloorPlan": "No valid floor plan found. Insufficient inventory or tent dimensions too challenging. Add more braces to your inventory.",
+      "minSetbackGreater": "Min setback cannot be greater than max setback.",
+      "tentTooSmall": "Tent too small: usable area would be {{length}}m × {{width}}m.",
+      "tentTooSmallGeneric": "Tent too small for the usable area.",
+      "noBracesFit": "No braces can fit in the usable length. Check brace dimensions.",
+      "insufficientInventoryOrientation": "No valid floor plan found. Insufficient inventory for this orientation.",
+      "tentDimensionsPositive": "Tent dimensions must be positive.",
+      "tentDimensionsMinSetback": "Tent dimensions must be at least {{min}}m to accommodate minimum setback.",
+      "tentDimensionsMinSetbackGeneric": "Tent dimensions too small for minimum setback.",
+      "insufficientBraceArea": "Insufficient brace inventory: total brace area is {{total}} m², but at least {{needed}} m² is needed. Add more braces.",
+      "insufficientBraceAreaGeneric": "Insufficient brace inventory. Add more braces to your inventory.",
+      "insufficientBraceQuantity": "Insufficient brace inventory: no single brace type has enough quantity to fill one column (usable length: {{usableLength}}m). Increase brace quantities or use a smaller tent.",
+      "insufficientBraceQuantityGeneric": "Insufficient brace inventory. Increase brace quantities or use a smaller tent."
+    }
   }
 }

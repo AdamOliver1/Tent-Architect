@@ -116,6 +116,34 @@
   "error": {
     "invalidDimensions": "אנא הזן מידות אוהל תקינות",
     "calculationFailed": "החישוב נכשל. אנא נסה שוב.",
-    "generic": "משהו השתבש"
+    "generic": "משהו השתבש",
+    "validation": {
+      "braceLengthInvalid": "אנא הזן אורך חיובי תקין לפלטה {{index}}.",
+      "braceWidthInvalid": "אנא הזן רוחב חיובי תקין לפלטה {{index}}.",
+      "braceQuantityInvalid": "אנא הזן כמות של לפחות 1 לפלטה {{index}}.",
+      "railLengthInvalid": "אנא הזן אורך חיובי תקין לרלס {{index}}.",
+      "railQuantityInvalid": "אנא הזן כמות של לפחות 1 לרלס {{index}}.",
+      "tentDimensionsInvalid": "אנא הזן מידות אוהל חיוביות ותקינות.",
+      "other": "אנא בדוק את שאר השדות ונסה שוב."
+    },
+    "inventory": {
+      "atLeastOneBrace": "נדרש לפחות סוג פלטה אחד.",
+      "atLeastOneRail": "נדרש לפחות סוג רלס אחד."
+    },
+    "calculation": {
+      "noValidFloorPlan": "לא נמצאה תוכנית רצפה תקינה. מלאי לא מספיק או מידות אוהל מאתגרות מדי. הוסף פלטות למלאי.",
+      "minSetbackGreater": "נסיגה מינימלית לא יכולה להיות גדולה מנסיגה מקסימלית.",
+      "tentTooSmall": "האוהל קטן מדי: השטח השמיש יהיה {{length}}מ' × {{width}}מ'.",
+      "tentTooSmallGeneric": "האוהל קטן מדי לשטח השמיש.",
+      "noBracesFit": "אף פלטה לא מתאימה לאורך השמיש. בדוק את מידות הפלטות.",
+      "insufficientInventoryOrientation": "לא נמצאה תוכנית רצפה תקינה. מלאי לא מספיק לכיוון זה.",
+      "tentDimensionsPositive": "מידות האוהל חייבות להיות חיוביות.",
+      "tentDimensionsMinSetback": "מידות האוהל חייבות להיות לפחות {{min}}מ' כדי לאפשר נסיגה מינימלית.",
+      "tentDimensionsMinSetbackGeneric": "מידות האוהל קטנות מדי לנסיגה מינימלית.",
+      "insufficientBraceArea": "מלאי פלטות לא מספיק: שטח הפלטות הכולל {{total}} מ², אך נדרש לפחות {{needed}} מ². הוסף פלטות למלאי.",
+      "insufficientBraceAreaGeneric": "מלאי פלטות לא מספיק. הוסף פלטות למלאי.",
+      "insufficientBraceQuantity": "מלאי פלטות לא מספיק: לאף סוג פלטה אין כמות מספקת לעמודה אחת (אורך שמיש: {{usableLength}}מ'). הגדל כמויות פלטות או השתמש באוהל קטן יותר.",
+      "insufficientBraceQuantityGeneric": "מלאי פלטות לא מספיק. הגדל כמויות פלטות או השתמש באוהל קטן יותר."
+    }
   }
 }

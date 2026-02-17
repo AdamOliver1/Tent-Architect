@@ -116,6 +116,34 @@
   "error": {
     "invalidDimensions": "يرجى إدخال أبعاد خيمة صالحة",
     "calculationFailed": "فشل الحساب. يرجى المحاولة مرة أخرى.",
-    "generic": "حدث خطأ ما"
+    "generic": "حدث خطأ ما",
+    "validation": {
+      "braceLengthInvalid": "يرجى إدخال طول موجب صالح للوحة {{index}}.",
+      "braceWidthInvalid": "يرجى إدخال عرض موجب صالح للوحة {{index}}.",
+      "braceQuantityInvalid": "يرجى إدخال كمية لا تقل عن 1 للوحة {{index}}.",
+      "railLengthInvalid": "يرجى إدخال طول موجب صالح للسكة {{index}}.",
+      "railQuantityInvalid": "يرجى إدخال كمية لا تقل عن 1 للسكة {{index}}.",
+      "tentDimensionsInvalid": "يرجى إدخال أبعاد خيمة موجبة وصالحة.",
+      "other": "يرجى التحقق من الحقول الأخرى والمحاولة مرة أخرى."
+    },
+    "inventory": {
+      "atLeastOneBrace": "مطلوب نوع لوحة واحد على الأقل.",
+      "atLeastOneRail": "مطلوب نوع سكة واحد على الأقل."
+    },
+    "calculation": {
+      "noValidFloorPlan": "لم يتم العثور على خطة أرضية صالحة. مخزون غير كافٍ أو أبعاد الخيمة صعبة جداً. أضف المزيد من اللوحات إلى المخزون.",
+      "minSetbackGreater": "لا يمكن أن يكون الحد الأدنى للتراجع أكبر من الحد الأقصى للتراجع.",
+      "tentTooSmall": "الخيمة صغيرة جداً: ستكون المساحة القابلة للاستخدام {{length}}م × {{width}}م.",
+      "tentTooSmallGeneric": "الخيمة صغيرة جداً للمساحة القابلة للاستخدام.",
+      "noBracesFit": "لا توجد لوحات تناسب الطول القابل للاستخدام. تحقق من أبعاد اللوحات.",
+      "insufficientInventoryOrientation": "لم يتم العثور على خطة أرضية صالحة. مخزون غير كافٍ لهذا الاتجاه.",
+      "tentDimensionsPositive": "يجب أن تكون أبعاد الخيمة موجبة.",
+      "tentDimensionsMinSetback": "يجب أن تكون أبعاد الخيمة {{min}}م على الأقل لاستيعاب الحد الأدنى للتراجع.",
+      "tentDimensionsMinSetbackGeneric": "أبعاد الخيمة صغيرة جداً للحد الأدنى للتراجع.",
+      "insufficientBraceArea": "مخزون اللوحات غير كافٍ: إجمالي مساحة اللوحات {{total}} م²، لكن المطلوب {{needed}} م² على الأقل. أضف المزيد من اللوحات.",
+      "insufficientBraceAreaGeneric": "مخزون اللوحات غير كافٍ. أضف المزيد من اللوحات إلى المخزون.",
+      "insufficientBraceQuantity": "مخزون اللوحات غير كافٍ: لا يوجد نوع لوحة واحد به كمية كافية لعمود واحد (الطول القابل للاستخدام: {{usableLength}}م). زد كميات اللوحات أو استخدم خيمة أصغر.",
+      "insufficientBraceQuantityGeneric": "مخزون اللوحات غير كافٍ. زد كميات اللوحات أو استخدم خيمة أصغر."
+    }
   }
 }
