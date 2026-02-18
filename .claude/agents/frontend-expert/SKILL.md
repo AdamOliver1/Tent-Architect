@@ -994,7 +994,7 @@ The app uses subtle, meaningful animations to enhance UX without being distracti
 - Side panel with smooth slide transition (300ms)
 - Canvas fills remaining space
 - Toolbar with glass morphism
-- Panel hidden on mobile (`display: none` below `$bp-md`)
+- **Mobile/tablet**: Panel becomes slide-over drawer from right; "Choose layout" button opens it; overlay to close; auto-close on scenario selection
 
 **Features**:
 - Select scenario by clicking card
@@ -1066,13 +1066,14 @@ The app uses subtle, meaningful animations to enhance UX without being distracti
 - Inline form fields with micro labels
 - Remove button with hover red tint
 
-### ExportModal Component
-**Location**: `src/components/ExportModal/`
+### ExportModal / ExportView Components
+**Location**: `src/components/ExportModal/`, `src/components/ExportView/`
 **Features**:
 - Native `<dialog>` element
 - Format selection (PDF, PNG, JSON)
 - Radio-style cards with animated selection
 - Close button and backdrop click
+- **ExportView**: Company name (`app.companyName`) as title; rails inventory (`{size}m × {count}`); RTL layout for Hebrew/Arabic; all labels via i18n
 
 **Styling**:
 ```scss

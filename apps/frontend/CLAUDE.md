@@ -41,10 +41,10 @@ src/
 │   │   ├── ScenarioInventoryModal.module.scss
 │   │   └── index.ts
 │   ├── ExportView/
-│   │   ├── ExportView.tsx            # SVG export view (adaptive sizing, uses scenario dimensions)
+│   │   ├── ExportView.tsx            # SVG export view (adaptive sizing, scenario dimensions, company title, rails inventory, RTL for he/ar)
 │   │   └── ExportView.module.scss
 │   ├── Header/
-│   │   └── Header.tsx                # Sticky header with logo ("KatsBros / האחים כץ"), language switcher
+│   │   └── Header.tsx                # Sticky header with logo (t('app.companyName')), language switcher
 │   └── Button/
 │       ├── Button.tsx              # Reusable button component
 │       └── Button.module.scss
@@ -94,6 +94,7 @@ src/
   - Legend shows brace type colors + sizes
   - Inventory modal shows brace types, setbacks, gaps, and used rails list
   - Scenario names translated on frontend via `scenarioNames` i18n keys
+  - **Mobile/tablet**: Panel becomes slide-over drawer; "Choose layout" button opens it; overlay to close; auto-close on scenario selection
 
 ## Routing
 Use React Router v6, wrapped in CalculationProvider:
@@ -127,7 +128,7 @@ Use React Router v6, wrapped in CalculationProvider:
   --spacing-md: 1rem;
   --spacing-lg: 1.5rem;
   ```
-- **Responsive** — Mobile-first approach, breakpoints at 768px, 1024px
+- **Responsive** — Mobile-first approach, breakpoints at 768px, 1024px. Results page panel is a slide-over drawer on mobile with "Choose layout" button.
 - **Grid/Flexbox** — No UI library needed for simple layouts
 
 ## Visualization
@@ -139,6 +140,11 @@ Use React Router v6, wrapped in CalculationProvider:
 - Show measurements and labels
 - Support zoom/pan for large tents
 - Legend shows each brace type (size + color swatch), gaps, rails
+
+## Internationalization (i18n)
+- All user-facing text uses `react-i18next` via `t()` — no hardcoded strings
+- Supported: English (en), Hebrew (he), Arabic (ar). Export image, modals, aria-labels, zoom controls all translated
+- Export image: Company name (`app.companyName`) as title; rails inventory; RTL layout for he/ar
 
 ## Best Practices
 - **Validation**: Validate inputs before API call (min dimensions, positive numbers)
