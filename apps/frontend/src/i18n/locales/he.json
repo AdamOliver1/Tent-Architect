@@ -1,10 +1,12 @@
 {
   "app": {
     "title": "אדריכל אוהלים",
-    "subtitle": "עצב תוכניות רצפת אוהל מותאמות בדיוק"
+    "subtitle": "עצב תוכניות רצפת אוהל מותאמות בדיוק",
+    "companyName": "האחים כץ"
   },
   "nav": {
-    "dashboard": "לוח בקרה"
+    "dashboard": "לוח בקרה",
+    "home": "עמוד הבית"
   },
   "dashboard": {
     "heroTitle": "עצב את תוכנית הרצפה שלך",
@@ -54,6 +56,10 @@
   "results": {
     "title": "תוצאות תוכנית הרצפה",
     "scenarios": "תרחישים",
+    "chooseLayout": "בחר פריסה",
+    "closePanel": "סגור פאנל",
+    "hideScenarios": "הסתר תרחישים",
+    "showScenarios": "הצג תרחישים",
     "scenario": "תרחיש",
     "selectScenario": "לחץ על תרחיש לצפייה בפרטים",
     "setback": "נסיגה",
@@ -102,7 +108,30 @@
     "exportBtn": "ייצוא",
     "download": "הורדה",
     "cancel": "ביטול",
-    "close": "סגור חלון ייצוא"
+    "close": "סגור חלון ייצוא",
+    "description": "ייצא את תוכנית הרצפה כתמונת PNG באיכות גבוהה כולל הוויזואליזציה, מלאי הפלטות בשימוש וכל המדידות.",
+    "failed": "הייצוא נכשל. אנא נסה שוב.",
+    "legend": "מקרא",
+    "gaps": "פערים",
+    "rails": "רלסים",
+    "usedBraces": "פלטות בשימוש",
+    "usedRails": "רלסים בשימוש",
+    "measurements": "מדידות",
+    "mixed": "מעורב"
+  },
+  "zoom": {
+    "controls": "בקרת זום",
+    "out": "הקטן",
+    "in": "הגדל",
+    "fitToView": "התאם לתצוגה",
+    "level": "רמת זום {{percent}}%. לחץ להתאמה לתצוגה."
+  },
+  "floorPlan": {
+    "ariaLabel": "תוכנית רצפה לאוהל {{length}}מ' על {{width}}מ', {{name}}",
+    "columnBraces": "{{count}} פלטות",
+    "columnMixed": " (מעורב)",
+    "columnOfSize": " של {{length}}מ' × {{width}}מ'",
+    "columnGap": ", פער {{gap}}מ'"
   },
   "constraints": {
     "title": "אילוצים",
@@ -115,6 +144,7 @@
   },
   "error": {
     "invalidDimensions": "אנא הזן מידות אוהל תקינות",
+    "dismiss": "סגור הודעת שגיאה",
     "calculationFailed": "החישוב נכשל. אנא נסה שוב.",
     "generic": "משהו השתבש",
     "validation": {

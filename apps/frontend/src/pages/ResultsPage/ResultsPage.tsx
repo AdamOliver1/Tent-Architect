@@ -59,7 +59,10 @@ export function ResultsPage() {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [sortBy, setSortBy] = useState<SortOption>('default');
   const [sortDir, setSortDir] = useState<SortDirection>('asc');
-  const [isPanelOpen, setIsPanelOpen] = useState(true);
+  // Desktop: panel open by default. Mobile: closed, opened via "Choose layout" button
+  const [isPanelOpen, setIsPanelOpen] = useState(() =>
+    typeof window !== 'undefined' && window.innerWidth < 768 ? false : true
+  );
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [isInventoryModalOpen, setIsInventoryModalOpen] = useState(false);
   const [inventoryModalScenarioIndex, setInventoryModalScenarioIndex] = useState(0);
@@ -71,6 +74,26 @@ export function ResultsPage() {
   } | null>(null);
   const popupRef = useRef<HTMLDivElement>(null);
   const vizRef = useRef<HTMLDivElement>(null);
+
+  // Track mobile viewport to auto-close panel after scenario selection
+  const [isMobileView, setIsMobileView] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth < 768 : false
+  );
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767px)');
+    const handler = () => setIsMobileView(mq.matches);
+    mq.addEventListener('change', handler);
+    handler();
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+
+  const handleSelectScenario = useCallback(
+    (originalIndex: number) => {
+      setSelectedIndex(originalIndex);
+      if (isMobileView) setIsPanelOpen(false);
+    },
+    [isMobileView]
+  );
 
   useEffect(() => {
     if (!results || results.length === 0) {
@@ -199,13 +222,26 @@ export function ResultsPage() {
         </div>
 
         <div className={styles.toolbarRight}>
-          {/* Scenario toggle */}
+          {/* Mobile: "Choose layout" when panel closed */}
           <button
-            className={styles.panelToggle}
+            className={`${styles.chooseLayoutBtn} ${!isPanelOpen ? styles.chooseLayoutBtnVisible : ''}`}
+            onClick={() => setIsPanelOpen(true)}
+            type="button"
+            aria-label={t('results.chooseLayout')}
+          >
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden>
+              <rect x="2" y="3" width="5" height="12" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
+              <rect x="10" y="3" width="6" height="12" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
+            </svg>
+            <span>{t('results.chooseLayout')}</span>
+          </button>
+          {/* Panel toggle: desktop always, mobile when panel open */}
+          <button
+            className={`${styles.panelToggle} ${isPanelOpen ? styles.panelToggleVisible : ''}`}
             onClick={() => setIsPanelOpen(!isPanelOpen)}
             type="button"
-            aria-label={isPanelOpen ? 'Hide scenarios' : 'Show scenarios'}
-            title={isPanelOpen ? 'Hide scenarios' : 'Show scenarios'}
+            aria-label={isPanelOpen ? t('results.hideScenarios') : t('results.showScenarios')}
+            title={isPanelOpen ? t('results.hideScenarios') : t('results.showScenarios')}
           >
             <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
               <rect x="2" y="3" width="5" height="12" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
@@ -232,11 +268,37 @@ export function ResultsPage() {
 
       {/* ── Main layout ── */}
       <div className={styles.layout}>
-        {/* Scenario side panel */}
-        <aside className={`${styles.panel} ${isPanelOpen ? styles.panelOpen : styles.panelClosed}`}>
+        {/* Mobile overlay: tap to close panel */}
+        <div
+          role="button"
+          tabIndex={-1}
+          className={`${styles.panelOverlay} ${isPanelOpen ? styles.panelOverlayVisible : ''}`}
+          aria-hidden={!isPanelOpen}
+          onClick={() => setIsPanelOpen(false)}
+          onKeyDown={(e) => e.key === 'Escape' && setIsPanelOpen(false)}
+          style={{ pointerEvents: isPanelOpen ? 'auto' : 'none' }}
+        />
+
+        {/* Scenario side panel — drawer on mobile, sidebar on desktop */}
+        <aside
+          className={`${styles.panel} ${isPanelOpen ? styles.panelOpen : styles.panelClosed}`}
+          aria-hidden={!isPanelOpen}
+        >
           <div className={styles.panelHeader}>
             <h2>{t('results.scenarios')}</h2>
-            <span className={styles.panelCount}>{results.length}</span>
+            <div className={styles.panelHeaderActions}>
+              <span className={styles.panelCount}>{results.length}</span>
+              <button
+                type="button"
+                className={styles.panelCloseBtn}
+                onClick={() => setIsPanelOpen(false)}
+                aria-label={t('results.closePanel')}
+              >
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                  <path d="M5 5l8 8M13 5l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                </svg>
+              </button>
+            </div>
           </div>
           <div className={styles.sortBar}>
             <select
@@ -275,7 +337,7 @@ export function ResultsPage() {
                 key={originalIndex}
                 scenario={scenario}
                 isSelected={originalIndex === selectedIndex}
-                onSelect={() => setSelectedIndex(originalIndex)}
+                onSelect={() => handleSelectScenario(originalIndex)}
                 onInventoryClick={() => {
                   setInventoryModalScenarioIndex(originalIndex);
                   setIsInventoryModalOpen(true);

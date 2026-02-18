@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { Scenario } from '../../types';
 import styles from './ExportView.module.scss';
 
@@ -42,6 +43,8 @@ function darkenColor(hex: string, amount: number): string {
 
 export function ExportView({ scenario, tentDimensions: _tentDimensions, braceColorMap }: ExportViewProps) {
   void _tentDimensions; // Props kept for interface compatibility; using scenario dimensions instead
+  const { t, i18n } = useTranslation();
+  const isRtl = i18n.language === 'he' || i18n.language === 'ar';
 
   // Rotate display so longest dimension is always horizontal
   const rotated = scenario.tentLength > scenario.tentWidth;
@@ -124,6 +127,24 @@ export function ExportView({ scenario, tentDimensions: _tentDimensions, braceCol
       outside: !fitsInside
     };
   };
+
+  // Aggregate rail usage from scenario.rails (single track pattern × railTrackCount)
+  const railUsage = useMemo(() => {
+    if (!scenario.rails || scenario.rails.length === 0 || !scenario.rails[0]) return [];
+    const trackPattern = scenario.rails[0];
+    const trackCount = scenario.railTrackCount || 1;
+    const usage = new Map<number, number>();
+    for (const segment of trackPattern) {
+      const existing = usage.get(segment.length) || 0;
+      usage.set(segment.length, existing + 1);
+    }
+    return Array.from(usage.entries())
+      .sort((a, b) => b[0] - a[0])
+      .map(([length, countPerTrack]) => ({
+        length,
+        count: countPerTrack * trackCount,
+      }));
+  }, [scenario.rails, scenario.railTrackCount]);
 
   // Aggregate brace usage from scenario columns (handles mixed columns)
   const braceUsage = useMemo(() => {
@@ -257,10 +278,15 @@ export function ExportView({ scenario, tentDimensions: _tentDimensions, braceCol
   };
 
   return (
-    <div id="export-view" className={styles.exportView}>
+    <div
+      id="export-view"
+      className={styles.exportView}
+      dir={isRtl ? 'rtl' : 'ltr'}
+      lang={i18n.language}
+    >
       {/* Header */}
       <div className={styles.header}>
-        <h1 className={styles.title}>{scenario.name}</h1>
+        <h1 className={styles.title}>{t('app.companyName')}</h1>
         <p className={styles.subtitle}>
           {formatDim(displayLength)}m × {formatDim(displayWidth)}m
         </p>
@@ -417,7 +443,7 @@ export function ExportView({ scenario, tentDimensions: _tentDimensions, braceCol
                               <text x={bx + bw / 2} y={by - 4} textAnchor="middle"
                                 className={styles.braceDimLabelOutside}
                                 style={{ fontSize: `${labelProps.fontSize}px` }}>
-                                Mixed
+                                {t('export.mixed')}
                               </text>
                             ) : (
                               <text x={bx + bw / 2} y={by + bh / 2 + 4} textAnchor="middle"
@@ -597,7 +623,7 @@ export function ExportView({ scenario, tentDimensions: _tentDimensions, braceCol
 
       {/* Legend */}
       <div className={styles.legend}>
-        <h3 className={styles.legendTitle}>Legend</h3>
+        <h3 className={styles.legendTitle}>{t('export.legend')}</h3>
         <div className={styles.legendItems}>
           {braceUsage.map((usage) => (
             <div key={`${usage.length}×${usage.width}`} className={styles.legendItem}>
@@ -607,18 +633,18 @@ export function ExportView({ scenario, tentDimensions: _tentDimensions, braceCol
           ))}
           <div className={styles.legendItem}>
             <span className={styles.legendSwatch} style={{ backgroundColor: COLORS.gap, border: `1px solid ${COLORS.gapBorder}` }} />
-            <span>Gaps</span>
+            <span>{t('export.gaps')}</span>
           </div>
           <div className={styles.legendItem}>
             <span className={styles.legendSwatch} style={{ backgroundColor: COLORS.rail }} />
-            <span>Rails</span>
+            <span>{t('export.rails')}</span>
           </div>
         </div>
       </div>
 
       {/* Inventory Section */}
       <div className={styles.inventory}>
-        <h3 className={styles.inventoryTitle}>Used Braces</h3>
+        <h3 className={styles.inventoryTitle}>{t('export.usedBraces')}</h3>
         <div className={styles.braceList}>
           {braceUsage.map((usage) => (
             <div key={`${usage.length}×${usage.width}`} className={styles.braceItem}>
@@ -632,24 +658,41 @@ export function ExportView({ scenario, tentDimensions: _tentDimensions, braceCol
         </div>
       </div>
 
+      {/* Rails Section */}
+      {railUsage.length > 0 && (
+        <div className={styles.inventory}>
+          <h3 className={styles.inventoryTitle}>{t('export.usedRails')}</h3>
+          <div className={styles.braceList}>
+            {railUsage.map(({ length, count }) => (
+              <div key={length} className={styles.braceItem}>
+                <span className={styles.braceSwatch} style={{ backgroundColor: COLORS.rail }} />
+                <span className={styles.braceSize}>
+                  {formatDim(length)}m × {count}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Measurements Section */}
       <div className={styles.measurements}>
-        <h3 className={styles.measurementsTitle}>Measurements</h3>
+        <h3 className={styles.measurementsTitle}>{t('export.measurements')}</h3>
         <div className={styles.measurementGrid}>
           <div className={styles.measurementItem}>
-            <span className={styles.measurementLabel}>Rail-End Setback:</span>
+            <span className={styles.measurementLabel}>{t('results.railEndSetback')}:</span>
             <span className={styles.measurementValue}>{formatDim(scenario.setback)}m</span>
           </div>
           <div className={styles.measurementItem}>
-            <span className={styles.measurementLabel}>Open-End Start:</span>
+            <span className={styles.measurementLabel}>{t('results.openEndSetbackStart')}:</span>
             <span className={styles.measurementValue}>{formatDim(scenario.openEndSetbackStart)}m</span>
           </div>
           <div className={styles.measurementItem}>
-            <span className={styles.measurementLabel}>Open-End End:</span>
+            <span className={styles.measurementLabel}>{t('results.openEndSetbackEnd')}:</span>
             <span className={styles.measurementValue}>{formatDim(scenario.openEndSetbackEnd)}m</span>
           </div>
           <div className={styles.measurementItem}>
-            <span className={styles.measurementLabel}>Total Gap:</span>
+            <span className={styles.measurementLabel}>{t('results.totalGap')}:</span>
             <span className={styles.measurementValue}>{formatDim(scenario.totalGap)}m</span>
           </div>
         </div>

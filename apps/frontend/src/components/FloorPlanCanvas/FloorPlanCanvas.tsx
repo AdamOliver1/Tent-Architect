@@ -1,7 +1,23 @@
 import { useMemo, useState, useEffect, useCallback, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { Scenario, Column } from '../../types';
 import { ZoomControls } from '../ZoomControls';
 import styles from './FloorPlanCanvas.module.scss';
+
+function translateScenarioName(name: string, t: (key: string) => string): string {
+  const baseNames = [
+    'Best Width Fit', 'Least Brace Kinds', 'Minimum Gaps',
+    'Least Rails', 'Least Braces', 'Biggest Braces', 'Balanced', 'Option',
+  ];
+  for (const base of baseNames) {
+    if (name === base) return t(`results.scenarioNames.${base}`);
+    if (name.startsWith(base + ' ')) {
+      const suffix = name.slice(base.length + 1);
+      return `${t(`results.scenarioNames.${base}`)} ${suffix}`;
+    }
+  }
+  return name;
+}
 
 interface FloorPlanCanvasProps {
   scenario: Scenario;
@@ -75,6 +91,7 @@ export function FloorPlanCanvas({
   selectedColumnIndex,
   braceColorMap = {},
 }: FloorPlanCanvasProps) {
+  const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const [containerWidth, setContainerWidth] = useState(800);
@@ -470,7 +487,11 @@ export function FloorPlanCanvas({
           transformOrigin: 'top center',
         }}
         role="img"
-        aria-label={`Floor plan for ${scenario.tentLength}m by ${scenario.tentWidth}m tent, ${scenario.name}`}
+        aria-label={t('floorPlan.ariaLabel', {
+          length: scenario.tentLength,
+          width: scenario.tentWidth,
+          name: translateScenarioName(scenario.name, t),
+        })}
       >
         {/* Background */}
         <rect width={layout.svgWidth} height={layout.svgHeight} fill={COLORS.background} />
@@ -607,7 +628,7 @@ export function FloorPlanCanvas({
               onMouseLeave={() => setHoveredColumn(null)}
               role={onColumnClick ? 'button' : undefined}
               tabIndex={onColumnClick ? 0 : undefined}
-              aria-label={`Column ${colIdx + 1}: ${columnType.braceCount} braces${columnType.mixed ? ' (mixed)' : ` of ${columnType.braceLength}m x ${columnType.braceWidth}m`}${columnType.gap > 0.001 ? `, gap ${formatDim(columnType.gap)}m` : ''}`}
+              aria-label={`${t('results.columnNumber')} ${colIdx + 1}: ${t('floorPlan.columnBraces', { count: columnType.braceCount })}${columnType.mixed ? t('floorPlan.columnMixed') : t('floorPlan.columnOfSize', { length: columnType.braceLength, width: columnType.braceWidth })}${columnType.gap > 0.001 ? t('floorPlan.columnGap', { gap: formatDim(columnType.gap) }) : ''}`}
             >
               {columnType.bracePlacements ? (
                 // Mixed column: render each placement group sequentially

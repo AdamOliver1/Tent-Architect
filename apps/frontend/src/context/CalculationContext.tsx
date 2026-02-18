@@ -109,7 +109,7 @@ export function CalculationProvider({ children }: { children: ReactNode }) {
           ? err.message
           : err instanceof Error
             ? err.message
-            : 'An unexpected error occurred';
+            : 'An unexpected error occurred'; // Translated via formatValidationError in UI
 
       setState((prev) => ({
         ...prev,

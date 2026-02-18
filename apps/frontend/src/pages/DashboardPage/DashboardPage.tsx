@@ -113,7 +113,7 @@ export function DashboardPage() {
                   <path d="M9 6v4M9 12.5v.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                 </svg>
                 <span className={styles.errorMessage}>{formatValidationError(error, t)}</span>
-                <button onClick={clearError} type="button" aria-label="Dismiss error">
+                <button onClick={clearError} type="button" aria-label={t('error.dismiss')}>
                   <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
                     <path d="M4 4l6 6M10 4l-6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                   </svg>

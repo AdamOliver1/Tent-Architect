@@ -104,6 +104,7 @@ export function formatValidationError(
   rawMessage: string,
   t: TFunction
 ): string {
+  if (rawMessage === 'An unexpected error occurred') return t('error.generic');
   const businessResult = tryBusinessLogic(rawMessage, t);
   if (businessResult) return businessResult;
 

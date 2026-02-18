@@ -27,7 +27,7 @@ export function Header() {
           className={styles.logo}
           onClick={() => navigate('/')}
           type="button"
-          aria-label="Go to homepage"
+          aria-label={t('nav.home')}
         >
           <img
             className={styles.logoIcon}
@@ -37,7 +37,7 @@ export function Header() {
             height="32"
           />
           <span className={styles.logoText}>
-            {i18n.language === 'he' ? 'האחים כץ' : 'KatsBros'}
+            {t('app.companyName')}
           </span>
         </button>
 

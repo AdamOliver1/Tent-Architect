@@ -4,6 +4,12 @@
   background: #FFFFFF;
   padding: 40px;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  // RTL: Hebrew & Arabic — use font that supports these scripts
+  &[dir='rtl'] {
+    font-family: 'Arial', 'Helvetica Neue', 'Segoe UI', Tahoma, sans-serif;
+    text-align: right;
+  }
 }
 
 .header {

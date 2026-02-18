@@ -76,7 +76,7 @@ export function ExportModal({
       onClose();
     } catch (err) {
       console.error('Export failed:', err);
-      setError(err instanceof Error ? err.message : 'Export failed. Please try again.');
+      setError('failed');
     } finally {
       setIsExporting(false);
     }
@@ -114,8 +114,7 @@ export function ExportModal({
         {/* Export description */}
         <div className={styles.content}>
           <p className={styles.description}>
-            Export your floor plan as a high-quality PNG image including the visualization,
-            used braces inventory, and all measurements.
+            {t('export.description')}
           </p>
           {error && (
             <div className={styles.error} role="alert">
@@ -123,7 +122,7 @@ export function ExportModal({
                 <circle cx="10" cy="10" r="8" stroke="currentColor" strokeWidth="1.5" />
                 <path d="M10 6v4M10 14h.01" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
               </svg>
-              <span>{error}</span>
+              <span>{t('export.failed')}</span>
             </div>
           )}
         </div>

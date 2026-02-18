@@ -51,6 +51,22 @@
   animation: slideUp 300ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
   display: flex;
   flex-direction: column;
+
+  // Mobile & tablet: full-width, generous padding, max-height for scroll
+  @media (max-width: $bp-md) {
+    width: calc(100vw - 2 * $spacing-lg);
+    max-width: 480px;
+    margin: $spacing-lg;
+    max-height: calc(100vh - 2 * $spacing-lg);
+    border-radius: $radius-xl;
+  }
+
+  @media (max-width: $bp-sm) {
+    width: calc(100vw - 2 * $spacing-md);
+    margin: $spacing-md;
+    max-height: calc(100vh - 2 * $spacing-md);
+    border-radius: $radius-lg;
+  }
 }
 
 // ── Header ──
@@ -60,6 +76,10 @@
   justify-content: space-between;
   padding: $spacing-xl $spacing-xl $spacing-lg;
   flex-shrink: 0;
+
+  @media (max-width: $bp-md) {
+    padding: $spacing-lg $spacing-lg $spacing-md;
+  }
 }
 
 .title {
@@ -98,6 +118,11 @@
   padding: 0 $spacing-xl;
   overflow-y: auto;
   flex: 1;
+  -webkit-overflow-scrolling: touch;
+
+  @media (max-width: $bp-md) {
+    padding: 0 $spacing-lg;
+  }
 }
 
 .section {
@@ -136,6 +161,10 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   gap: $spacing-sm;
+
+  @media (max-width: $bp-sm) {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 .statItem {
@@ -225,6 +254,10 @@
   justify-content: flex-end;
   padding: $spacing-lg $spacing-xl;
   flex-shrink: 0;
+
+  @media (max-width: $bp-md) {
+    padding: $spacing-md $spacing-lg;
+  }
 }
 
 // ── Reduced motion ──

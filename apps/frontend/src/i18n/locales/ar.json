@@ -1,10 +1,12 @@
 {
   "app": {
     "title": "مهندس الخيام",
-    "subtitle": "صمم مخططات أرضية خيمة محسنة بدقة"
+    "subtitle": "صمم مخططات أرضية خيمة محسنة بدقة",
+    "companyName": "أخوة كاتس"
   },
   "nav": {
-    "dashboard": "لوحة التحكم"
+    "dashboard": "لوحة التحكم",
+    "home": "الصفحة الرئيسية"
   },
   "dashboard": {
     "heroTitle": "صمم مخطط الأرضية الخاص بك",
@@ -54,6 +56,10 @@
   "results": {
     "title": "نتائج مخطط الأرضية",
     "scenarios": "السيناريوهات",
+    "chooseLayout": "اختر التخطيط",
+    "closePanel": "إغلاق اللوحة",
+    "hideScenarios": "إخفاء السيناريوهات",
+    "showScenarios": "عرض السيناريوهات",
     "scenario": "سيناريو",
     "selectScenario": "انقر فوق سيناريو لعرض التفاصيل",
     "setback": "التراجع",
@@ -102,7 +108,30 @@
     "exportBtn": "تصدير",
     "download": "تحميل",
     "cancel": "إلغاء",
-    "close": "إغلاق نافذة التصدير"
+    "close": "إغلاق نافذة التصدير",
+    "description": "صدّر مخطط الأرضية كصورة PNG عالية الجودة تتضمن التصور والمخزون المستخدم من الدعامات وجميع القياسات.",
+    "failed": "فشل التصدير. يرجى المحاولة مرة أخرى.",
+    "legend": "وسيلة الإيضاح",
+    "gaps": "الفجوات",
+    "rails": "القضبان",
+    "usedBraces": "الدعامات المستخدمة",
+    "usedRails": "القضبان المستخدمة",
+    "measurements": "القياسات",
+    "mixed": "مختلط"
+  },
+  "zoom": {
+    "controls": "أدوات التكبير",
+    "out": "تصغير",
+    "in": "تكبير",
+    "fitToView": "ملاءمة العرض",
+    "level": "مستوى التكبير {{percent}}%. انقر للملاءمة."
+  },
+  "floorPlan": {
+    "ariaLabel": "مخطط أرضية لخيمة {{length}}م × {{width}}م، {{name}}",
+    "columnBraces": "{{count}} دعامات",
+    "columnMixed": " (مختلط)",
+    "columnOfSize": " بحجم {{length}}م × {{width}}م",
+    "columnGap": "، فجوة {{gap}}م"
   },
   "constraints": {
     "title": "القيود",
@@ -115,6 +144,7 @@
   },
   "error": {
     "invalidDimensions": "يرجى إدخال أبعاد خيمة صالحة",
+    "dismiss": "إغلاق رسالة الخطأ",
     "calculationFailed": "فشل الحساب. يرجى المحاولة مرة أخرى.",
     "generic": "حدث خطأ ما",
     "validation": {

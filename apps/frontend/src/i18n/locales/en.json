@@ -1,10 +1,12 @@
 {
   "app": {
     "title": "Tent Architect",
-    "subtitle": "Design optimized tent floor plans with precision"
+    "subtitle": "Design optimized tent floor plans with precision",
+    "companyName": "KatsBros"
   },
   "nav": {
-    "dashboard": "Dashboard"
+    "dashboard": "Dashboard",
+    "home": "Go to homepage"
   },
   "dashboard": {
     "heroTitle": "Design Your Floor Plan",
@@ -54,6 +56,10 @@
   "results": {
     "title": "Floor Plan Results",
     "scenarios": "Scenarios",
+    "chooseLayout": "Choose layout",
+    "closePanel": "Close panel",
+    "hideScenarios": "Hide scenarios",
+    "showScenarios": "Show scenarios",
     "scenario": "Scenario",
     "selectScenario": "Click a scenario to view details",
     "setback": "Setback",
@@ -102,7 +108,30 @@
     "exportBtn": "Export",
     "download": "Download",
     "cancel": "Cancel",
-    "close": "Close export dialog"
+    "close": "Close export dialog",
+    "description": "Export your floor plan as a high-quality PNG image including the visualization, used braces inventory, and all measurements.",
+    "failed": "Export failed. Please try again.",
+    "legend": "Legend",
+    "gaps": "Gaps",
+    "rails": "Rails",
+    "usedBraces": "Used Braces",
+    "usedRails": "Used Rails",
+    "measurements": "Measurements",
+    "mixed": "Mixed"
+  },
+  "zoom": {
+    "controls": "Zoom controls",
+    "out": "Zoom out",
+    "in": "Zoom in",
+    "fitToView": "Fit to view",
+    "level": "Zoom level {{percent}}%. Click to fit to view."
+  },
+  "floorPlan": {
+    "ariaLabel": "Floor plan for {{length}}m by {{width}}m tent, {{name}}",
+    "columnBraces": "{{count}} braces",
+    "columnMixed": " (mixed)",
+    "columnOfSize": " of {{length}}m × {{width}}m",
+    "columnGap": ", gap {{gap}}m"
   },
   "constraints": {
     "title": "Constraints",
@@ -115,6 +144,7 @@
   },
   "error": {
     "invalidDimensions": "Please enter valid tent dimensions",
+    "dismiss": "Dismiss error",
     "calculationFailed": "Calculation failed. Please try again.",
     "generic": "Something went wrong",
     "validation": {
