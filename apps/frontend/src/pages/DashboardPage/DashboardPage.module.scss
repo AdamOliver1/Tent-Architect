@@ -9,11 +9,11 @@
 // ── Hero ──
 .hero {
   position: relative;
-  padding: $spacing-4xl $spacing-2xl $spacing-3xl;
+  padding: $spacing-3xl $spacing-lg $spacing-2xl;
   overflow: hidden;
 
-  @media (max-width: $bp-md) {
-    padding: $spacing-3xl $spacing-lg $spacing-2xl;
+  @media (min-width: $bp-md) {
+    padding: $spacing-4xl $spacing-2xl $spacing-3xl;
   }
 }
 
@@ -26,27 +26,27 @@
 }
 
 .heroTitle {
-  font-size: $font-4xl;
+  font-size: $font-3xl;
   font-weight: 700;
   letter-spacing: -0.035em;
   line-height: 1.1;
   color: $text-color;
   margin-bottom: $spacing-md;
 
-  @media (max-width: $bp-md) {
-    font-size: $font-3xl;
+  @media (min-width: $bp-md) {
+    font-size: $font-4xl;
   }
 }
 
 .heroSubtitle {
-  font-size: $font-lg;
+  font-size: $font-md;
   color: $text-secondary;
   line-height: 1.6;
   max-width: 460px;
   margin: 0 auto;
 
-  @media (max-width: $bp-md) {
-    font-size: $font-md;
+  @media (min-width: $bp-md) {
+    font-size: $font-lg;
   }
 }
 
@@ -71,14 +71,14 @@
   max-width: $bp-xl;
   width: 100%;
   margin: 0 auto;
-  padding: 0 $spacing-2xl $spacing-4xl;
+  padding: 0 $spacing-lg $spacing-3xl;
   display: flex;
   flex-direction: column;
-  gap: $spacing-3xl;
+  gap: $spacing-2xl;
 
-  @media (max-width: $bp-md) {
-    padding: 0 $spacing-lg $spacing-3xl;
-    gap: $spacing-2xl;
+  @media (min-width: $bp-md) {
+    padding: 0 $spacing-2xl $spacing-4xl;
+    gap: $spacing-3xl;
   }
 }
 
@@ -119,14 +119,14 @@
 // ── Form section ──
 .formSection {
   background: $surface-color;
-  border-radius: $radius-2xl;
-  padding: $spacing-2xl;
+  border-radius: $radius-xl;
+  padding: $spacing-xl;
   box-shadow: $shadow-md;
   border: 1px solid $border-light;
 
-  @media (max-width: $bp-md) {
-    padding: $spacing-xl;
-    border-radius: $radius-xl;
+  @media (min-width: $bp-md) {
+    padding: $spacing-2xl;
+    border-radius: $radius-2xl;
   }
 }
 

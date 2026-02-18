@@ -13,14 +13,14 @@
 .inner {
   max-width: $bp-xl;
   margin: 0 auto;
-  padding: $spacing-md $spacing-2xl;
+  padding: $spacing-md $spacing-lg;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: $spacing-lg;
 
-  @media (max-width: $bp-sm) {
-    padding: $spacing-md $spacing-lg;
+  @media (min-width: $bp-sm) {
+    padding: $spacing-md $spacing-2xl;
   }
 }
 

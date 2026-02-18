@@ -30,11 +30,11 @@
 .primary {
   background: $primary-color;
   color: $text-on-primary;
-  box-shadow: $shadow-sm, inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  box-shadow: $shadow-sm, inset 0 1px 0 rgba($text-on-primary, 0.1);
 
   &:hover:not(:disabled) {
     background: $primary-hover;
-    box-shadow: $shadow-md, inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    box-shadow: $shadow-md, inset 0 1px 0 rgba($text-on-primary, 0.1);
     transform: translateY(-1px);
   }
 }
@@ -65,19 +65,19 @@
 
 .accent {
   background: $accent-color;
-  color: #FFFFFF;
-  box-shadow: $shadow-sm, inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  color: $text-on-primary;
+  box-shadow: $shadow-sm, inset 0 1px 0 rgba($text-on-primary, 0.15);
 
   &:hover:not(:disabled) {
     background: $accent-light;
-    box-shadow: $shadow-md, inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    box-shadow: $shadow-md, inset 0 1px 0 rgba($text-on-primary, 0.15);
     transform: translateY(-1px);
   }
 }
 
 .danger {
   background: $error-color;
-  color: #FFFFFF;
+  color: $text-on-primary;
 
   &:hover:not(:disabled) {
     background: darken($error-color, 8%);
@@ -122,7 +122,7 @@
   position: absolute;
   width: 1.1em;
   height: 1.1em;
-  border: 2px solid rgba(255, 255, 255, 0.3);
+  border: 2px solid rgba($text-on-primary, 0.3);
   border-top-color: currentColor;
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
@@ -131,8 +131,8 @@
   .primary &,
   .accent &,
   .danger & {
-    border-color: rgba(255, 255, 255, 0.3);
-    border-top-color: #FFFFFF;
+    border-color: rgba($text-on-primary, 0.3);
+    border-top-color: $text-on-primary;
   }
 
   .secondary &,

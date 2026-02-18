@@ -1,0 +1,64 @@
+@use '../../styles/variables' as *;
+
+.sortBar {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: $spacing-xs;
+  background: $background-color;
+  border-radius: $radius-md;
+  flex-shrink: 0;
+  margin-bottom: $spacing-lg;
+}
+
+.sortSelect {
+  flex: 1;
+  font-size: $font-xs;
+  font-weight: 500;
+  color: $text-color;
+  background: transparent;
+  border: none;
+  padding: $spacing-2xs $spacing-sm;
+  cursor: pointer;
+  border-radius: $radius-sm;
+  transition: background $transition-fast;
+
+  &:hover {
+    background: rgba($primary-color, 0.06);
+  }
+
+  &:focus {
+    outline: none;
+    background: rgba($primary-color, 0.06);
+    box-shadow: 0 0 0 1.5px $primary-light;
+  }
+}
+
+.sortDirBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: $radius-sm;
+  background: transparent;
+  color: $text-secondary;
+  cursor: pointer;
+  transition: all $transition-fast;
+  flex-shrink: 0;
+
+  &:hover:not(:disabled) {
+    background: rgba($primary-color, 0.08);
+    color: $primary-color;
+  }
+
+  &:active:not(:disabled) {
+    background: rgba($primary-color, 0.14);
+  }
+}
+
+.sortDirDisabled {
+  opacity: 0.3;
+  cursor: default;
+}

@@ -13,12 +13,13 @@
 
 .fields {
   display: flex;
+  flex-direction: column;
   align-items: flex-start;
-  gap: $spacing-lg;
+  gap: $spacing-md;
 
-  @media (max-width: $bp-sm) {
-    flex-direction: column;
-    gap: $spacing-md;
+  @media (min-width: $bp-sm) {
+    flex-direction: row;
+    gap: $spacing-lg;
   }
 }
 
@@ -87,14 +88,15 @@
 }
 
 .separator {
+  display: none; // Mobile: hidden
   padding-top: $spacing-xl; // Align with input baseline
   font-size: $font-xl;
   color: $text-muted;
   font-weight: 300;
   user-select: none;
 
-  @media (max-width: $bp-sm) {
-    display: none;
+  @media (min-width: $bp-sm) {
+    display: block;
   }
 }
 

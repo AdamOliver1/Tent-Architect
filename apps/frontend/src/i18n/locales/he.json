@@ -131,7 +131,11 @@
     "columnBraces": "{{count}} פלטות",
     "columnMixed": " (מעורב)",
     "columnOfSize": " של {{length}}מ' × {{width}}מ'",
-    "columnGap": ", פער {{gap}}מ'"
+    "columnGap": ", פער {{gap}}מ'",
+    "mixed": "מעורב",
+    "legendGaps": "פערים",
+    "legendRails": "רלסים",
+    "columnHint": "לחץ על עמודה לפרטים"
   },
   "constraints": {
     "title": "אילוצים",

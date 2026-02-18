@@ -131,7 +131,11 @@
     "columnBraces": "{{count}} دعامات",
     "columnMixed": " (مختلط)",
     "columnOfSize": " بحجم {{length}}م × {{width}}م",
-    "columnGap": "، فجوة {{gap}}م"
+    "columnGap": "، فجوة {{gap}}م",
+    "mixed": "مختلط",
+    "legendGaps": "الفجوات",
+    "legendRails": "القضبان",
+    "columnHint": "انقر على عمود للتفاصيل"
   },
   "constraints": {
     "title": "القيود",

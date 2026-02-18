@@ -71,12 +71,13 @@
 
 .fields {
   display: flex;
-  gap: $spacing-lg;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: $spacing-md;
 
-  @media (max-width: $bp-sm) {
-    flex-direction: column;
-    gap: $spacing-md;
+  @media (min-width: $bp-sm) {
+    flex-direction: row;
+    gap: $spacing-lg;
+    flex-wrap: wrap;
   }
 }
 

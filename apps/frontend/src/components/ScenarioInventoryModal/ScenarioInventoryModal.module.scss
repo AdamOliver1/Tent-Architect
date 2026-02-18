@@ -13,7 +13,7 @@
   inset: 0;
 
   &::backdrop {
-    background: rgba(42, 47, 46, 0.4);
+    background: rgba($text-color, 0.4);
     backdrop-filter: blur(4px);
     animation: fadeIn 200ms ease-out;
   }
@@ -41,19 +41,19 @@
 
 // ── Modal container ──
 .modal {
-  width: 520px;
-  max-width: calc(100vw - 2 * $spacing-xl);
-  max-height: calc(100vh - 4 * $spacing-xl);
+  // Mobile: near full-width
+  width: calc(100vw - 2 * $spacing-md);
+  margin: $spacing-md;
+  max-height: calc(100vh - 2 * $spacing-md);
+  border-radius: $radius-lg;
   background: $surface-color;
-  border-radius: $radius-2xl;
   box-shadow: $shadow-xl;
   overflow: hidden;
   animation: slideUp 300ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
   display: flex;
   flex-direction: column;
 
-  // Mobile & tablet: full-width, generous padding, max-height for scroll
-  @media (max-width: $bp-md) {
+  @media (min-width: $bp-sm) {
     width: calc(100vw - 2 * $spacing-lg);
     max-width: 480px;
     margin: $spacing-lg;
@@ -61,11 +61,12 @@
     border-radius: $radius-xl;
   }
 
-  @media (max-width: $bp-sm) {
-    width: calc(100vw - 2 * $spacing-md);
-    margin: $spacing-md;
-    max-height: calc(100vh - 2 * $spacing-md);
-    border-radius: $radius-lg;
+  @media (min-width: $bp-md) {
+    width: 520px;
+    max-width: calc(100vw - 2 * $spacing-xl);
+    margin: unset;
+    max-height: calc(100vh - 4 * $spacing-xl);
+    border-radius: $radius-2xl;
   }
 }
 
@@ -74,11 +75,11 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  padding: $spacing-xl $spacing-xl $spacing-lg;
+  padding: $spacing-lg $spacing-lg $spacing-md;
   flex-shrink: 0;
 
-  @media (max-width: $bp-md) {
-    padding: $spacing-lg $spacing-lg $spacing-md;
+  @media (min-width: $bp-md) {
+    padding: $spacing-xl $spacing-xl $spacing-lg;
   }
 }
 
@@ -115,13 +116,13 @@
 
 // ── Content ──
 .content {
-  padding: 0 $spacing-xl;
+  padding: 0 $spacing-lg;
   overflow-y: auto;
   flex: 1;
   -webkit-overflow-scrolling: touch;
 
-  @media (max-width: $bp-md) {
-    padding: 0 $spacing-lg;
+  @media (min-width: $bp-md) {
+    padding: 0 $spacing-xl;
   }
 }
 
@@ -159,11 +160,11 @@
 // ── Stat grid ──
 .statGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  grid-template-columns: repeat(2, 1fr);
   gap: $spacing-sm;
 
-  @media (max-width: $bp-sm) {
-    grid-template-columns: repeat(2, 1fr);
+  @media (min-width: $bp-sm) {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   }
 }
 
@@ -212,7 +213,7 @@
   height: 14px;
   border-radius: 4px;
   flex-shrink: 0;
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba($text-color, 0.1);
 }
 
 .braceInfo {
@@ -252,11 +253,11 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  padding: $spacing-lg $spacing-xl;
+  padding: $spacing-md $spacing-lg;
   flex-shrink: 0;
 
-  @media (max-width: $bp-md) {
-    padding: $spacing-md $spacing-lg;
+  @media (min-width: $bp-md) {
+    padding: $spacing-lg $spacing-xl;
   }
 }
 

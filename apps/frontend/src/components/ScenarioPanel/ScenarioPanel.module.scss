@@ -1,0 +1,218 @@
+@use '../../styles/variables' as *;
+
+// ── Mobile overlay (backdrop when drawer is open) ──
+
+.overlay {
+  // Mobile: full-screen backdrop
+  position: fixed;
+  inset: 0;
+  z-index: $z-modal-overlay;
+  background: rgba($text-color, 0.4);
+  backdrop-filter: blur(4px);
+  cursor: pointer;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity $transition-smooth, visibility $transition-smooth;
+
+  @media (min-width: $bp-md) {
+    // Desktop: overlay not needed
+    display: none;
+  }
+}
+
+.overlayVisible {
+  opacity: 1;
+  visibility: visible;
+}
+
+// ── Panel ──
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  background: $surface-color;
+  border-inline-end: 1px solid $border-light;
+  transition: all $transition-smooth;
+  flex-shrink: 0;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.panelOpen {
+  // Mobile: visible slide-in drawer
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(100%, 360px);
+  max-width: 360px;
+  height: 100%;
+  padding: $spacing-xl;
+  z-index: $z-modal;
+  box-shadow: -8px 0 32px rgba($text-color, 0.12);
+  transform: translateX(0);
+  transition: transform $transition-smooth;
+  overflow-y: auto;
+
+  @media (min-width: $bp-md) {
+    // Tablet: static sidebar
+    position: static;
+    overflow-y: auto;
+    width: 360px;
+    height: 1000px;
+    padding: $spacing-lg;
+    z-index: auto;
+    box-shadow: none;
+    transform: none;
+  }
+
+  @media (min-width: $bp-lg) {
+    // Desktop: wider sidebar
+    width: 420px;
+    padding: $spacing-xl;
+  }
+}
+
+.panelClosed {
+  // Mobile: hidden, slid off to the right
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(100%, 360px);
+  max-width: 360px;
+  transform: translateX(100%);
+  transition: transform $transition-smooth;
+  pointer-events: none;
+  visibility: hidden;
+  padding: 0;
+
+  @media (min-width: $bp-md) {
+    // Desktop: collapsed sidebar (zero width)
+    position: static;
+    width: 0;
+    padding: 0;
+    border-inline-end: none;
+    overflow: hidden;
+    transform: none;
+    pointer-events: auto;
+    visibility: visible;
+  }
+}
+
+// ── Panel header ──
+
+.panelHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-lg;
+  flex-shrink: 0;
+
+  h2 {
+    font-size: $font-md;
+    font-weight: 600;
+    color: $text-color;
+  }
+}
+
+.panelHeaderActions {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+}
+
+.panelCloseBtn {
+  // Mobile: visible — panel has no external toggle button
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: $radius-md;
+  background: $background-color;
+  color: $text-muted;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    background: $primary-muted;
+    color: $primary-color;
+  }
+
+  @media (min-width: $bp-md) {
+    // Desktop: hidden — toolbar toggle button handles this
+    display: none;
+  }
+}
+
+.panelCount {
+  font-size: $font-xs;
+  font-weight: 600;
+  color: $text-muted;
+  background: $background-color;
+  width: 24px;
+  height: 24px;
+  border-radius: $radius-full;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+// ── Scenario list ──
+
+.panelList {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-lg;
+  flex: 1;
+  overflow-y: auto;
+  padding-inline-end: $spacing-xs;
+
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: rgba($text-muted, 0.2);
+    border-radius: 4px;
+  }
+  &::-webkit-scrollbar-thumb:hover {
+    background: rgba($text-muted, 0.4);
+  }
+}
+
+// ── Stats footer ──
+
+.panelStats {
+  display: flex;
+  gap: $spacing-lg;
+  padding-top: $spacing-lg;
+  margin-top: $spacing-lg;
+  border-top: 1px solid $border-light;
+  flex-shrink: 0;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-2xs;
+}
+
+.statLabel {
+  font-size: $font-2xs;
+  font-weight: 500;
+  color: $text-muted;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.statValue {
+  font-size: $font-xl;
+  font-weight: 700;
+  color: $text-color;
+  font-variant-numeric: tabular-nums;
+}

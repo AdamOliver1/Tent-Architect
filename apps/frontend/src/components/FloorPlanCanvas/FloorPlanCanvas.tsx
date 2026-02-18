@@ -35,7 +35,7 @@ const COLORS = {
   setbackLine: '#A0877A',
   setbackFill: 'rgba(196, 149, 106, 0.15)',
   setbackStripe: 'rgba(196, 149, 106, 0.08)',
-  rail: '#4A5553',
+  rail: '#C8C8C8',
   brace: '#5A7A6C',
   braceHover: '#4A6A5C',
   braceBorder: '#3A5A4C',
@@ -660,7 +660,7 @@ export function FloorPlanCanvas({
                               <text x={bx + bw / 2} y={by - 4} textAnchor="middle"
                                 className={styles.braceDimLabelOutside}
                                 style={{ fontSize: `${labelProps.fontSize}px` }}>
-                                Mixed
+                                {t('floorPlan.mixed')}
                               </text>
                             ) : (
                               <text x={bx + bw / 2} y={by + bh / 2 + 4} textAnchor="middle"
@@ -856,11 +856,11 @@ export function FloorPlanCanvas({
         ))}
         <div className={styles.legendItem}>
           <span className={styles.legendSwatch} style={{ backgroundColor: COLORS.gap, border: `1px solid ${COLORS.gapBorder}` }} />
-          <span>Gaps</span>
+          <span>{t('floorPlan.legendGaps')}</span>
         </div>
         <div className={styles.legendItem}>
           <span className={styles.legendSwatch} style={{ backgroundColor: COLORS.rail }} />
-          <span>Rails</span>
+          <span>{t('floorPlan.legendRails')}</span>
         </div>
       </div>
 
@@ -941,7 +941,7 @@ export function FloorPlanCanvas({
       {/* ── Pan hint ── */}
       {onColumnClick && zoom === 1 && (
         <div className={styles.hint}>
-          Click a column for details
+          {t('floorPlan.columnHint')}
         </div>
       )}
     </div>

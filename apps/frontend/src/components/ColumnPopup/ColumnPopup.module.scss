@@ -1,0 +1,129 @@
+@use '../../styles/variables' as *;
+
+@keyframes popupIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.popup {
+  // Mobile default: anchored near bottom for thumb reach
+  position: fixed;
+  z-index: $z-popup;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: $spacing-xl;
+  top: auto;
+  width: min(280px, calc(100vw - 2 * #{$spacing-lg}));
+  background: $surface-color;
+  border-radius: $radius-xl;
+  box-shadow: $shadow-xl;
+  border: 1px solid $border-light;
+  padding: $spacing-lg;
+  animation: popupIn 200ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+
+  @media (min-width: $bp-md) {
+    // Desktop: JS-controlled absolute positioning
+    position: absolute;
+    left: unset;
+    transform: none;
+    bottom: unset;
+    top: unset;
+    width: 260px;
+    max-width: calc(100vw - 2 * #{$spacing-lg});
+  }
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-md;
+
+  h4 {
+    font-size: $font-md;
+    color: $text-color;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+  }
+}
+
+.badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: $radius-full;
+  background: $primary-muted;
+  color: $primary-color;
+  font-size: $font-xs;
+  font-weight: 700;
+}
+
+.closeBtn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  color: $text-muted;
+  cursor: pointer;
+  border-radius: $radius-md;
+  transition: all $transition-fast;
+
+  &:hover {
+    background: $background-color;
+    color: $text-color;
+  }
+}
+
+.details {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-2xs;
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 0;
+
+  dt {
+    font-size: $font-sm;
+    color: $text-muted;
+    font-weight: 500;
+  }
+
+  dd {
+    font-size: $font-sm;
+    font-weight: 600;
+    color: $text-color;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.rowGap {
+  dt {
+    color: $warning-color;
+  }
+  dd {
+    color: darken($warning-color, 12%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .popup {
+    animation: none;
+  }
+}

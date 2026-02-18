@@ -1,8 +1,10 @@
+@use '../../styles/variables' as *;
+
 .exportView {
   width: auto; // Adapts to SVG width
   min-width: 1200px;
-  background: #FFFFFF;
-  padding: 40px;
+  background: $surface-color;
+  padding: $spacing-3xl;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 
   // RTL: Hebrew & Arabic — use font that supports these scripts
@@ -13,191 +15,191 @@
 }
 
 .header {
-  margin-bottom: 32px;
+  margin-bottom: $spacing-xl;
   text-align: center;
-  border-bottom: 2px solid #E5E7EB;
-  padding-bottom: 24px;
+  border-bottom: 2px solid $border-light;
+  padding-bottom: $spacing-lg;
 }
 
 .title {
-  font-size: 32px;
+  font-size: $font-3xl;
   font-weight: 600;
-  color: #1F2937;
-  margin: 0 0 8px 0;
+  color: $text-color;
+  margin: 0 0 $spacing-sm 0;
 }
 
 .subtitle {
-  font-size: 18px;
-  color: #6B7280;
+  font-size: $font-lg;
+  color: $text-secondary;
   margin: 0;
 }
 
 .svg {
   display: block;
-  margin: 0 auto 32px;
-  border: 1px solid #E5E7EB;
-  border-radius: 8px;
+  margin: 0 auto $spacing-xl;
+  border: 1px solid $border-light;
+  border-radius: $radius-md;
 }
 
 .setbackLabel {
-  font-size: 11px;
+  font-size: $font-2xs;
   font-weight: 600;
-  fill: #5A6462;
+  fill: $text-secondary;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 .measureLabel {
-  font-size: 13px;
+  font-size: $font-sm;
   font-weight: 600;
-  fill: #5A6462;
+  fill: $text-secondary;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 .braceDimLabel {
-  font-size: 10px;
+  font-size: $font-xs;
   font-weight: 600;
-  fill: #FFFFFF;
+  fill: $text-on-primary;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   pointer-events: none;
 }
 
 .braceDimLabelOutside {
-  font-size: 10px;
+  font-size: $font-xs;
   font-weight: 600;
-  fill: #374151;
+  fill: $text-color;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   pointer-events: none;
   paint-order: stroke fill;
-  stroke: rgba(255, 255, 255, 0.9);
+  stroke: rgba($text-on-primary, 0.9);
   stroke-width: 2px;
 }
 
 .legend {
-  margin-bottom: 32px;
-  padding: 20px;
-  background: #F9FAFB;
-  border-radius: 8px;
-  border: 1px solid #E5E7EB;
+  margin-bottom: $spacing-xl;
+  padding: $spacing-lg;
+  background: $background-color;
+  border-radius: $radius-md;
+  border: 1px solid $border-light;
 }
 
 .legendTitle {
-  font-size: 16px;
+  font-size: $font-md;
   font-weight: 600;
-  color: #1F2937;
-  margin: 0 0 12px 0;
+  color: $text-color;
+  margin: 0 0 $spacing-sm 0;
 }
 
 .legendItems {
   display: flex;
   flex-wrap: wrap;
-  gap: 16px;
+  gap: $spacing-md;
 }
 
 .legendItem {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  color: #4B5563;
+  gap: $spacing-sm;
+  font-size: $font-sm;
+  color: $text-secondary;
 }
 
 .legendSwatch {
   display: inline-block;
   width: 20px;
   height: 20px;
-  border-radius: 4px;
+  border-radius: $radius-xs;
   flex-shrink: 0;
 }
 
 .inventory {
-  margin-bottom: 32px;
-  padding: 20px;
-  background: #F9FAFB;
-  border-radius: 8px;
-  border: 1px solid #E5E7EB;
+  margin-bottom: $spacing-xl;
+  padding: $spacing-lg;
+  background: $background-color;
+  border-radius: $radius-md;
+  border: 1px solid $border-light;
 }
 
 .inventoryTitle {
-  font-size: 16px;
+  font-size: $font-md;
   font-weight: 600;
-  color: #1F2937;
-  margin: 0 0 16px 0;
+  color: $text-color;
+  margin: 0 0 $spacing-md 0;
 }
 
 .braceList {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 12px;
+  gap: $spacing-sm;
 }
 
 .braceItem {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px;
-  background: #FFFFFF;
-  border-radius: 6px;
-  border: 1px solid #E5E7EB;
+  gap: $spacing-sm;
+  padding: $spacing-sm $spacing-md;
+  background: $surface-color;
+  border-radius: $radius-sm;
+  border: 1px solid $border-light;
 }
 
 .braceSwatch {
   display: inline-block;
   width: 24px;
   height: 24px;
-  border-radius: 4px;
+  border-radius: $radius-xs;
   flex-shrink: 0;
 }
 
 .braceSize {
-  font-size: 14px;
+  font-size: $font-sm;
   font-weight: 500;
-  color: #374151;
+  color: $text-color;
   flex: 1;
 }
 
 .braceCount {
-  font-size: 14px;
+  font-size: $font-sm;
   font-weight: 600;
-  color: #6B7280;
+  color: $text-secondary;
 }
 
 .measurements {
-  padding: 20px;
-  background: #F9FAFB;
-  border-radius: 8px;
-  border: 1px solid #E5E7EB;
+  padding: $spacing-lg;
+  background: $background-color;
+  border-radius: $radius-md;
+  border: 1px solid $border-light;
 }
 
 .measurementsTitle {
-  font-size: 16px;
+  font-size: $font-md;
   font-weight: 600;
-  color: #1F2937;
-  margin: 0 0 16px 0;
+  color: $text-color;
+  margin: 0 0 $spacing-md 0;
 }
 
 .measurementGrid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
+  gap: $spacing-md;
 }
 
 .measurementItem {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px;
-  background: #FFFFFF;
-  border-radius: 6px;
-  border: 1px solid #E5E7EB;
+  padding: $spacing-sm $spacing-md;
+  background: $surface-color;
+  border-radius: $radius-sm;
+  border: 1px solid $border-light;
 }
 
 .measurementLabel {
-  font-size: 14px;
-  color: #6B7280;
+  font-size: $font-sm;
+  color: $text-secondary;
 }
 
 .measurementValue {
-  font-size: 14px;
+  font-size: $font-sm;
   font-weight: 600;
-  color: #1F2937;
+  color: $text-color;
 }

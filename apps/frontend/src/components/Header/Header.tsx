@@ -32,7 +32,7 @@ export function Header() {
           <img
             className={styles.logoIcon}
             src="/logo.png"
-            alt="אחים כץ"
+            alt={t('app.companyName')}
             width="32"
             height="32"
           />

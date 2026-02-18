@@ -131,7 +131,11 @@
     "columnBraces": "{{count}} braces",
     "columnMixed": " (mixed)",
     "columnOfSize": " of {{length}}m × {{width}}m",
-    "columnGap": ", gap {{gap}}m"
+    "columnGap": ", gap {{gap}}m",
+    "mixed": "Mixed",
+    "legendGaps": "Gaps",
+    "legendRails": "Rails",
+    "columnHint": "Click a column for details"
   },
   "constraints": {
     "title": "Constraints",

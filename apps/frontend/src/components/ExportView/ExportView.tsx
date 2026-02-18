@@ -18,7 +18,7 @@ const COLORS = {
   setbackLine: '#A0877A',
   setbackFill: 'rgba(196, 149, 106, 0.15)',
   setbackStripe: 'rgba(196, 149, 106, 0.08)',
-  rail: '#4A5553',
+  rail: '#C8C8C8',
   brace: '#5A7A6C',
   braceBorder: '#3A5A4C',
   gap: '#FFF0DB',

@@ -13,7 +13,7 @@
   inset: 0;
 
   &::backdrop {
-    background: rgba(42, 47, 46, 0.4);
+    background: rgba($text-color, 0.4);
     backdrop-filter: blur(4px);
     animation: fadeIn 200ms ease-out;
   }
@@ -108,10 +108,10 @@
   gap: $spacing-sm;
   padding: $spacing-md;
   margin-top: $spacing-md;
-  background: rgba(239, 68, 68, 0.08);
-  border: 1px solid rgba(239, 68, 68, 0.2);
+  background: $error-bg;
+  border: 1px solid rgba($error-color, 0.2);
   border-radius: $radius-lg;
-  color: #dc2626;
+  color: $error-color;
   font-size: $font-sm;
 
   svg {

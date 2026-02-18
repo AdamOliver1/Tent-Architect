@@ -36,6 +36,16 @@ src/
 │   ├── ScenarioCard/
 │   │   ├── ScenarioCard.tsx        # Individual scenario display (setback + braces + inventory btn)
 │   │   └── ScenarioCard.module.scss
+│   ├── ScenarioPanel/
+│   │   ├── ScenarioPanel.tsx           # Scenario side-panel: header, sort bar, scenario list, stats footer
+│   │   ├── ScenarioPanel.module.scss
+│   │   ├── SortBar.tsx                 # Sort select + direction toggle (exports SortOption, SortDirection)
+│   │   ├── SortBar.module.scss
+│   │   └── index.ts
+│   ├── ColumnPopup/
+│   │   ├── ColumnPopup.tsx             # Column detail popup dialog (brace size, gap, count)
+│   │   ├── ColumnPopup.module.scss
+│   │   └── index.ts
 │   ├── ScenarioInventoryModal/
 │   │   ├── ScenarioInventoryModal.tsx  # Inventory detail modal per scenario
 │   │   ├── ScenarioInventoryModal.module.scss
@@ -81,10 +91,13 @@ src/
 ### Results Page
 - **Purpose**: Display up to 6 calculated scenarios
 - **Components**:
+  - `ScenarioPanel` — Slide-over drawer (mobile) / sidebar (desktop) containing sort bar, scenario list, and stats footer; manages sort state internally
+  - `SortBar` — Sort select + direction toggle (co-located in ScenarioPanel folder)
   - `ScenarioCard` (×N) — Show setback + brace count + inventory button
+  - `ColumnPopup` — Column detail popup (brace size, count, gap); positioned near click/tap
   - `ScenarioInventoryModal` — Full inventory breakdown per scenario
   - `FloorPlanCanvas` — Visualize selected scenario with brace colors
-  - `Button` — "Back to Dashboard" button
+  - `Button` — Export button
 - **State**: Results from `CalculationContext`
 - **Features**:
   - Compare scenarios side-by-side
@@ -153,6 +166,31 @@ Use React Router v6, wrapped in CalculationProvider:
 - **Accessibility**: Semantic HTML, ARIA labels, keyboard navigation
 - **Code Organization**: One component per file, max 200 lines per file
 - **Props**: Define interfaces for all component props
+
+### Engineering Rules (must be followed on every task)
+
+**1. Single Responsibility**
+Each component must do exactly one thing. If a component renders distinct UI sections (e.g., a sort bar, a scrollable list, a drawer panel), extract each into its own file under `components/`. Pages are orchestrators — they compose components, they do not define UI inline. When a component exceeds ~100 lines of JSX or contains 2+ unrelated UI concerns, split it.
+
+**2. Mobile-First CSS**
+All styles must be written mobile-first. Default styles target the smallest viewport. Use `min-width` media queries to progressively enhance for tablet (`$bp-md: 768px`) and desktop (`$bp-lg: 1024px`). Never use `max-width` as the primary breakpoint direction.
+
+**3. i18n Checklist (after every component)**
+Scan the finished component for any hardcoded user-facing strings. Every label, button text, placeholder, tooltip, aria-label, and error message must use `t('key')`. If a key is missing, add it to all three locale files: `en.json`, `he.json`, `ar.json`. No exceptions — the app is trilingual.
+
+**4. Global Variables Checklist (after every `.module.scss` file)**
+Verify all colors, spacing values, font sizes, shadows, radii, and transitions use CSS variables from `styles/variables.scss`. No hardcoded hex values, raw `px` spacing, or magic numbers. If a needed token doesn't exist in `variables.scss`, add it there first, then use it.
+
+**5. State Management Rules**
+- Use `React.createContext` only for lightweight, localized UI state scoped to a single page or feature (e.g., a panel's open/close flag).
+- Use **Zustand** for any state that: crosses multiple pages, requires complex updates, is shared by 3+ unrelated components, or represents persisted/server-derived data.
+- Never store ephemeral UI state (hover, focus, animation flags) in global context.
+
+**6. Self-Updating Docs (after every code change)**
+After writing or modifying any component, check:
+- Does `apps/frontend/CLAUDE.md` need updating? (new component added, new pattern used, structure changed)
+- Does `.claude/agents/frontend-expert/SKILL.md` need updating?
+If yes, update them in the same session. The docs must always reflect the current state of the codebase.
 
 ## Commands
 - `npm run dev` — Dev server

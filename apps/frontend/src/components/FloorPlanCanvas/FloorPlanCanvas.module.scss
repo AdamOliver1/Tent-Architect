@@ -15,7 +15,7 @@
     content: '';
     position: absolute;
     inset: 0;
-    background-image: radial-gradient(circle, rgba(0,0,0,0.02) 1px, transparent 1px);
+    background-image: radial-gradient(circle, rgba($text-color, 0.02) 1px, transparent 1px);
     background-size: 16px 16px;
     pointer-events: none;
     z-index: 0;
@@ -81,7 +81,7 @@
 }
 
 .columnSelected {
-  filter: brightness(1.04) drop-shadow(0 0 6px rgba(90, 122, 108, 0.35));
+  filter: brightness(1.04) drop-shadow(0 0 6px rgba($primary-color, 0.35));
 }
 
 .braceRect {
@@ -100,7 +100,7 @@
 .setbackLabel {
   font-size: 12px;
   font-family: $font-family;
-  fill: #8B4513;
+  fill: $canvas-setback-text;
   font-weight: 700;
   letter-spacing: 0.02em;
 }
@@ -115,7 +115,7 @@
 .braceDimLabel {
   font-size: 9px;
   font-family: $font-family;
-  fill: rgba(255, 255, 255, 0.92);
+  fill: rgba($text-on-primary, 0.92);
   font-weight: 600;
   pointer-events: none;
 }
@@ -127,14 +127,14 @@
   font-weight: 600;
   pointer-events: none;
   paint-order: stroke fill;
-  stroke: rgba(255, 255, 255, 0.8);
+  stroke: rgba($text-on-primary, 0.8);
   stroke-width: 2px;
 }
 
 .gapDimLabel {
   font-size: 8px;
   font-family: $font-family;
-  fill: #92400e;
+  fill: $canvas-gap-text;
   font-weight: 600;
   pointer-events: none;
 }

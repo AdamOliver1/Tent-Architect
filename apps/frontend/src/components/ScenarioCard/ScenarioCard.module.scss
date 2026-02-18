@@ -39,14 +39,14 @@
 
 .body {
   flex: 1;
-  padding: $spacing-xl $spacing-2xl;
+  padding: $spacing-lg $spacing-xl;
   display: flex;
   flex-direction: column;
-  gap: $spacing-lg;
+  gap: $spacing-md;
 
-  @media (max-width: 480px) {
-    padding: $spacing-lg $spacing-xl;
-    gap: $spacing-md;
+  @media (min-width: $bp-xs) {
+    padding: $spacing-xl $spacing-2xl;
+    gap: $spacing-lg;
   }
 }
 
@@ -60,17 +60,13 @@
 // ── Metrics grid ──
 .metrics {
   display: grid;
-  grid-template-columns: 1fr auto 1fr auto 1fr auto 1fr auto 1fr;
+  grid-template-columns: repeat(2, 1fr);
   align-items: center;
-  gap: $spacing-md;
+  gap: $spacing-sm;
 
-  @media (max-width: 480px) {
-    grid-template-columns: repeat(2, 1fr);
-    gap: $spacing-sm;
-
-    .metricDivider {
-      display: none;
-    }
+  @media (min-width: $bp-xs) {
+    grid-template-columns: 1fr auto 1fr auto 1fr auto 1fr auto 1fr;
+    gap: $spacing-md;
   }
 }
 
@@ -99,10 +95,15 @@
 }
 
 .metricDivider {
+  display: none;
   width: 1px;
   height: 32px;
   background: $border-light;
   flex-shrink: 0;
+
+  @media (min-width: $bp-xs) {
+    display: block;
+  }
 }
 
 // ── Actions row ──

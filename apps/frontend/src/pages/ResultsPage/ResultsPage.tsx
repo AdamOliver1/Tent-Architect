@@ -2,53 +2,28 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useCalculation } from '../../context/CalculationContext';
-import { ScenarioCard } from '../../components/ScenarioCard';
+import { ScenarioPanel } from '../../components/ScenarioPanel';
 import { FloorPlanCanvas } from '../../components/FloorPlanCanvas';
 import { ExportModal } from '../../components/ExportModal';
 import { ScenarioInventoryModal } from '../../components/ScenarioInventoryModal';
+import { ColumnPopup } from '../../components/ColumnPopup';
 import { Button } from '../../components/Button';
-import type { Column, Scenario } from '../../types';
+import type { Column } from '../../types';
 import styles from './ResultsPage.module.scss';
 
-type SortOption = 'default' | 'gap' | 'setback' | 'braces' | 'columns';
-type SortDirection = 'asc' | 'desc';
-
-function getBraceCount(scenario: Scenario): number {
-  return scenario.columns.reduce((sum, col) => sum + col.columnType.braceCount, 0);
-}
-
-function formatNum(n: number): string {
-  return n.toFixed(3).replace(/\.?0+$/, '');
-}
-
 // Translate scenario names from backend English to current locale
-// Backend names: "Best Width Fit", "Minimum Gaps 2", "Least Rails", "Balanced", "Option 7", etc.
 function translateScenarioName(name: string, t: (key: string) => string): string {
-  // Known base names from the backend
   const baseNames = [
-    'Best Width Fit',
-    'Least Brace Kinds',
-    'Minimum Gaps',
-    'Least Rails',
-    'Least Braces',
-    'Biggest Braces',
-    'Balanced',
-    'Option',
+    'Best Width Fit', 'Least Brace Kinds', 'Minimum Gaps',
+    'Least Rails', 'Least Braces', 'Biggest Braces', 'Balanced', 'Option',
   ];
-
   for (const base of baseNames) {
-    if (name === base) {
-      return t(`results.scenarioNames.${base}`);
-    }
-    // Handle numbered variants like "Minimum Gaps 2", "Balanced 3", "Option 7"
+    if (name === base) return t(`results.scenarioNames.${base}`);
     if (name.startsWith(base + ' ')) {
       const suffix = name.slice(base.length + 1);
-      const translated = t(`results.scenarioNames.${base}`);
-      return `${translated} ${suffix}`;
+      return `${t(`results.scenarioNames.${base}`)} ${suffix}`;
     }
   }
-
-  // Fallback: return original name if no match
   return name;
 }
 
@@ -57,8 +32,6 @@ export function ResultsPage() {
   const navigate = useNavigate();
   const { results, tent, inventory } = useCalculation();
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [sortBy, setSortBy] = useState<SortOption>('default');
-  const [sortDir, setSortDir] = useState<SortDirection>('asc');
   // Desktop: panel open by default. Mobile: closed, opened via "Choose layout" button
   const [isPanelOpen, setIsPanelOpen] = useState(() =>
     typeof window !== 'undefined' && window.innerWidth < 768 ? false : true
@@ -96,9 +69,7 @@ export function ResultsPage() {
   );
 
   useEffect(() => {
-    if (!results || results.length === 0) {
-      navigate('/');
-    }
+    if (!results || results.length === 0) navigate('/');
   }, [results, navigate]);
 
   // Close popup on outside click
@@ -142,28 +113,7 @@ export function ResultsPage() {
     return map;
   }, [inventory]);
 
-  // Sort scenarios while preserving original indices for selection
-  const sortedScenarios = useMemo(() => {
-    if (!results || results.length === 0) return [];
-    const indexed = results.map((scenario, originalIndex) => ({ scenario, originalIndex }));
-    if (sortBy === 'default') return indexed;
-
-    const dir = sortDir === 'asc' ? 1 : -1;
-    return [...indexed].sort((a, b) => {
-      let diff = 0;
-      switch (sortBy) {
-        case 'gap': diff = a.scenario.totalGap - b.scenario.totalGap; break;
-        case 'setback': diff = a.scenario.setback - b.scenario.setback; break;
-        case 'braces': diff = getBraceCount(a.scenario) - getBraceCount(b.scenario); break;
-        case 'columns': diff = a.scenario.columns.length - b.scenario.columns.length; break;
-      }
-      return diff * dir;
-    });
-  }, [results, sortBy, sortDir]);
-
-  if (!results || results.length === 0) {
-    return null;
-  }
+  if (!results || results.length === 0) return null;
 
   const selectedScenario = results[selectedIndex];
 
@@ -173,18 +123,15 @@ export function ResultsPage() {
     const vizRect = vizRef.current.getBoundingClientRect();
     const popupWidth = 260;
     const popupHeight = 200;
-    const offset = 16; // px from mouse
+    const offset = 16;
 
     if (selectedColumn.mousePos) {
-      // Position near the mouse cursor
       let left = selectedColumn.mousePos.x - vizRect.left + offset;
       let top = selectedColumn.mousePos.y - vizRect.top + offset;
 
-      // If popup would overflow right, place it to the left of the mouse
       if (left + popupWidth > vizRect.width) {
         left = selectedColumn.mousePos.x - vizRect.left - popupWidth - offset;
       }
-      // If popup would overflow bottom, place it above the mouse
       if (top + popupHeight > vizRect.height) {
         top = selectedColumn.mousePos.y - vizRect.top - popupHeight - offset;
       }
@@ -194,7 +141,6 @@ export function ResultsPage() {
       return { left, top };
     }
 
-    // Fallback to column rect positioning
     const colRect = selectedColumn.rect;
     let left = colRect.right - vizRect.left + 12;
     let top = colRect.top - vizRect.top;
@@ -210,7 +156,7 @@ export function ResultsPage() {
 
   return (
     <div className={styles.page}>
-      {/* ── Top toolbar (floating) ── */}
+      {/* ── Top toolbar ── */}
       <div className={styles.toolbar}>
         <div className={styles.toolbarLeft}>
           <div className={styles.scenarioMeta}>
@@ -235,6 +181,7 @@ export function ResultsPage() {
             </svg>
             <span>{t('results.chooseLayout')}</span>
           </button>
+
           {/* Panel toggle: desktop always, mobile when panel open */}
           <button
             className={`${styles.panelToggle} ${isPanelOpen ? styles.panelToggleVisible : ''}`}
@@ -249,7 +196,6 @@ export function ResultsPage() {
             </svg>
           </button>
 
-          {/* Export button — prominent, always visible */}
           <Button
             variant="accent"
             size="medium"
@@ -268,96 +214,17 @@ export function ResultsPage() {
 
       {/* ── Main layout ── */}
       <div className={styles.layout}>
-        {/* Mobile overlay: tap to close panel */}
-        <div
-          role="button"
-          tabIndex={-1}
-          className={`${styles.panelOverlay} ${isPanelOpen ? styles.panelOverlayVisible : ''}`}
-          aria-hidden={!isPanelOpen}
-          onClick={() => setIsPanelOpen(false)}
-          onKeyDown={(e) => e.key === 'Escape' && setIsPanelOpen(false)}
-          style={{ pointerEvents: isPanelOpen ? 'auto' : 'none' }}
+        <ScenarioPanel
+          results={results}
+          selectedIndex={selectedIndex}
+          isOpen={isPanelOpen}
+          onClose={() => setIsPanelOpen(false)}
+          onSelectScenario={handleSelectScenario}
+          onInventoryClick={(idx) => {
+            setInventoryModalScenarioIndex(idx);
+            setIsInventoryModalOpen(true);
+          }}
         />
-
-        {/* Scenario side panel — drawer on mobile, sidebar on desktop */}
-        <aside
-          className={`${styles.panel} ${isPanelOpen ? styles.panelOpen : styles.panelClosed}`}
-          aria-hidden={!isPanelOpen}
-        >
-          <div className={styles.panelHeader}>
-            <h2>{t('results.scenarios')}</h2>
-            <div className={styles.panelHeaderActions}>
-              <span className={styles.panelCount}>{results.length}</span>
-              <button
-                type="button"
-                className={styles.panelCloseBtn}
-                onClick={() => setIsPanelOpen(false)}
-                aria-label={t('results.closePanel')}
-              >
-                <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                  <path d="M5 5l8 8M13 5l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                </svg>
-              </button>
-            </div>
-          </div>
-          <div className={styles.sortBar}>
-            <select
-              id="sort-select"
-              className={styles.sortSelect}
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as SortOption)}
-              aria-label={t('results.sortBy')}
-            >
-              <option value="default">{t('results.sortDefault')}</option>
-              <option value="gap">{t('results.sortGap')}</option>
-              <option value="setback">{t('results.sortSetback')}</option>
-              <option value="braces">{t('results.sortBraces')}</option>
-              <option value="columns">{t('results.sortColumns')}</option>
-            </select>
-            <button
-              type="button"
-              className={`${styles.sortDirBtn} ${sortBy === 'default' ? styles.sortDirDisabled : ''}`}
-              onClick={() => setSortDir(d => d === 'asc' ? 'desc' : 'asc')}
-              disabled={sortBy === 'default'}
-              aria-label={sortDir === 'asc' ? t('results.sortAsc') : t('results.sortDesc')}
-              title={sortDir === 'asc' ? t('results.sortAsc') : t('results.sortDesc')}
-            >
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                {sortDir === 'asc' ? (
-                  <path d="M7 2v10M3.5 5.5 7 2l3.5 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                ) : (
-                  <path d="M7 12V2M3.5 8.5 7 12l3.5-3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                )}
-              </svg>
-            </button>
-          </div>
-          <div className={styles.panelList}>
-            {sortedScenarios.map(({ scenario, originalIndex }) => (
-              <ScenarioCard
-                key={originalIndex}
-                scenario={scenario}
-                isSelected={originalIndex === selectedIndex}
-                onSelect={() => handleSelectScenario(originalIndex)}
-                onInventoryClick={() => {
-                  setInventoryModalScenarioIndex(originalIndex);
-                  setIsInventoryModalOpen(true);
-                }}
-              />
-            ))}
-          </div>
-
-          {/* Summary stats — setbacks for selected scenario */}
-          <div className={styles.panelStats}>
-            <div className={styles.stat}>
-              <span className={styles.statLabel}>{t('results.railEndSetback')}</span>
-              <span className={styles.statValue}>{formatNum(selectedScenario.setback)}m</span>
-            </div>
-            <div className={styles.stat}>
-              <span className={styles.statLabel}>{t('results.openEndSetbackStart')}</span>
-              <span className={styles.statValue}>{formatNum(selectedScenario.openEndSetbackStart)}m</span>
-            </div>
-          </div>
-        </aside>
 
         {/* ── Canvas area — the hero ── */}
         <div className={styles.canvasArea} ref={vizRef}>
@@ -368,69 +235,14 @@ export function ResultsPage() {
             braceColorMap={braceColorMap}
           />
 
-          {/* Column detail popup */}
           {selectedColumn && (
-            <div
-              ref={popupRef}
-              className={styles.columnPopup}
+            <ColumnPopup
+              popupRef={popupRef}
+              column={selectedColumn.column}
+              index={selectedColumn.index}
               style={getPopupStyle()}
-              role="dialog"
-              aria-label={`${t('results.columnNumber')} ${selectedColumn.index + 1} ${t('results.columnDetails')}`}
-            >
-              <div className={styles.popupHeader}>
-                <h4>
-                  <span className={styles.popupBadge}>{selectedColumn.index + 1}</span>
-                  {t('results.columnNumber')} {selectedColumn.index + 1}
-                </h4>
-                <button
-                  className={styles.popupClose}
-                  onClick={() => setSelectedColumn(null)}
-                  aria-label={t('results.close')}
-                >
-                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                    <path d="M4 4l6 6M10 4l-6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                  </svg>
-                </button>
-              </div>
-              <dl className={styles.popupDetails}>
-                <div className={styles.popupRow}>
-                  <dt>{t('results.braceSize')}</dt>
-                  <dd>
-                    {formatNum(selectedColumn.column.columnType.braceLength)}m ×{' '}
-                    {formatNum(selectedColumn.column.columnType.braceWidth)}m
-                  </dd>
-                </div>
-                {/* Show secondary brace types in mixed columns */}
-                {selectedColumn.column.columnType.bracePlacements &&
-                  selectedColumn.column.columnType.bracePlacements
-                    .filter(
-                      (bp) =>
-                        bp.braceLength !== selectedColumn.column.columnType.braceLength ||
-                        bp.braceWidth !== selectedColumn.column.columnType.braceWidth
-                    )
-                    .map((bp, idx) => (
-                      <div key={idx} className={styles.popupRow}>
-                        <dt>{t('results.braceSize')} #{idx + 2}</dt>
-                        <dd>
-                          {formatNum(bp.braceLength)}m × {formatNum(bp.braceWidth)}m
-                          {bp.count > 0 && ` (×${bp.count})`}
-                        </dd>
-                      </div>
-                    ))}
-                <div className={styles.popupRow}>
-                  <dt>{t('results.braces')}</dt>
-                  <dd>{selectedColumn.column.columnType.braceCount}</dd>
-                </div>
-                <div className={styles.popupRow}>
-                  <dt>{t('results.columnWidth')}</dt>
-                  <dd>{formatNum(selectedColumn.column.columnType.columnWidth)}m</dd>
-                </div>
-                <div className={`${styles.popupRow} ${selectedColumn.column.columnType.gap > 0.001 ? styles.popupRowGap : ''}`}>
-                  <dt>{t('results.gap')}</dt>
-                  <dd>{formatNum(selectedColumn.column.columnType.gap)}m</dd>
-                </div>
-              </dl>
-            </div>
+              onClose={() => setSelectedColumn(null)}
+            />
           )}
         </div>
       </div>
